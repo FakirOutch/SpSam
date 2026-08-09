@@ -163,16 +163,17 @@ function markup(){
       <span class="level-chip" data-role="level"></span>
     </div>
     <div class="hint-row">
-      <div class="timer-chip">⏱ <span data-role="timer">00:00</span></div>
       <button class="hint-btn" data-action="hint">💡 <span data-role="hint-count">3</span> ${t('common.hintsSuffix')}</button>
+      <div class="timer-chip">⏱ <span data-role="timer">00:00</span></div>
+      <button class="reveal-btn" data-action="reveal" title="${t('common.reveal')}" aria-label="${t('common.reveal')}">🔍</button>
     </div>
     <div class="cage-style-row" data-role="toggle-strip">
-      <div class="toggle-group"><span class="toggle-name">${t('common.toggleFocus')}</span><span class="cage-style-label">${t('common.toggleOff')}</span>
-        <label class="switch"><input type="checkbox" data-action="highlight"><span class="slider"></span></label>
-        <span class="cage-style-label">${t('common.toggleOn')}</span></div>
-      <div class="toggle-group"><span class="toggle-name">${t('common.toggleInput')}</span><span class="cage-style-label">${t('common.toggleOff')}</span>
-        <label class="switch"><input type="checkbox" data-action="input-mode"><span class="slider"></span></label>
-        <span class="cage-style-label">${t('common.toggleOn')}</span></div>
+      <div class="toggle-group"><span class="toggle-name">${t('common.toggleFocus')}</span>
+        <label class="switch"><input type="checkbox" data-action="highlight" aria-label="${t('common.toggleFocus')}"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-group"><span class="toggle-name">${t('common.toggleInput')}</span>
+        <label class="switch"><input type="checkbox" data-action="input-mode" aria-label="${t('common.toggleInput')}"><span class="slider"></span></label>
+      </div>
     </div>
     <div class="sudoku-module-wrap"><div class="sudoku-module-ratio">
       <div class="sudoku-module-grid" data-role="grid"></div>
@@ -180,7 +181,6 @@ function markup(){
     </div></div>
     <div class="grid-actions"><button class="btn secondary block" data-action="new">${t('common.newPuzzle')}</button>
       <button class="btn block" data-action="check" disabled>${t('common.check')}</button></div>
-    <button class="reveal-link" data-action="reveal">${t('common.reveal')}</button>
     <div class="inline-input hidden" data-role="inline-input">
       <div class="inline-input-row" data-role="inline-numpad"></div>
     </div>
@@ -297,7 +297,7 @@ function applyGameToUi(){
   root.querySelector('[data-role="inline-input"]').classList.toggle('hidden', game.inputMode === 'popup');
   root.querySelector('[data-role="timer"]').textContent = formatTime(game.elapsedSeconds);
   const reveal = root.querySelector('[data-action="reveal"]');
-  reveal.textContent = t('common.reveal'); reveal.disabled = false;
+  reveal.title = t('common.reveal'); reveal.setAttribute('aria-label', t('common.reveal')); reveal.disabled = false; reveal.classList.remove('used');
   refreshHintButton(); refreshInlineMarks(); renderGrid(); updateCheckButton();
 }
 
@@ -422,7 +422,7 @@ function revealSolution(){
   game.counted = true;
   stopTimer(); clearSave(); renderGrid(); updateCheckButton();
   const reveal = root.querySelector('[data-action="reveal"]');
-  reveal.textContent = t('common.revealed'); reveal.disabled = true;
+  reveal.title = t('common.revealed'); reveal.setAttribute('aria-label', t('common.revealed')); reveal.disabled = true; reveal.classList.add('used');
 }
 
 export function renderLevelsList(container, actions){

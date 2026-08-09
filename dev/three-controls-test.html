@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<!--
+  Temporäre Testdatei (Backlog Punkt 7): leeres 9×9-Raster ohne Generator,
+  nur um die drei Regler Fokus | Stil | Eingabe nebeneinander auf schmalen
+  Bildschirmen zu prüfen — kein Umbruch, keine Überlappung, kein
+  redundanter Ein/Aus-Text (siehe Punkt 4), aktiver Zustand bleibt über
+  die Slider-Farbe erkennbar. Kein Teil der Spiele-Registry, wird nicht
+  von app.js geladen — rein zum manuellen Anschauen/Testen auf dem Handy.
+  Kann nach dem Test wieder gelöscht werden.
+-->
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Regler-Test: Fokus | Stil | Eingabe</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+  body{ display:block; max-width:420px; margin:0 auto; padding:16px; }
+  .test-note{ font-size:12px; color:var(--ink-soft); margin-bottom:12px; }
+  .test-grid{
+    display:grid; grid-template-columns:repeat(9, 1fr); gap:1px;
+    background:var(--ink-faint); border:2px solid var(--ink-faint);
+    aspect-ratio:1; margin-top:16px;
+  }
+  .test-grid .cell{ background:var(--surface); }
+  .test-grid .cell:nth-child(3n){ border-right:2px solid var(--ink-faint); }
+  .test-row-marker:nth-child(27n){ }
+</style>
+</head>
+<body>
+  <p class="test-note">Testfläche für Punkt 7 (Backlog) — kein echtes Spiel, kein Generator. Prüft nur die Regler-Reihe.</p>
+
+  <div class="cage-style-row" data-role="toggle-strip">
+    <div class="toggle-group" title="Fokus: Reihe &amp; Spalte beim Eintragen grau hervorheben">
+      <span class="toggle-name">Fokus</span>
+      <label class="switch"><input type="checkbox" aria-label="Fokus"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-group">
+      <span class="toggle-name">Stil</span>
+      <label class="switch"><input type="checkbox" aria-label="Stil"><span class="slider"></span></label>
+    </div>
+    <div class="toggle-group" title="Eingabe: An = Zifferblock-Popup, Aus = feste Zahlenauswahl unten">
+      <span class="toggle-name">Eingabe</span>
+      <label class="switch"><input type="checkbox" checked aria-label="Eingabe"><span class="slider"></span></label>
+    </div>
+  </div>
+
+  <div class="test-grid" id="grid"></div>
+
+  <script>
+    const grid = document.getElementById('grid');
+    for(let i = 0; i < 81; i++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      grid.appendChild(cell);
+    }
+  </script>
+</body>
+</html>

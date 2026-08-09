@@ -30,8 +30,6 @@ export default {
     focusToggleTitle: 'Fokus: Reihe & Spalte beim Eintragen grau hervorheben',
     toggleFocus: 'Fokus',
     toggleInput: 'Eingabe',
-    toggleOff: 'Aus',
-    toggleOn: 'An',
     favorite: 'Favorit',
     difficulty: {
       veryEasy: 'Sehr leicht',
@@ -79,7 +77,6 @@ export default {
   },
 
   levels: {
-    chooseLevel: 'Stufe wählen',
     tutorial: 'Tutorial',
     tutorialComingSoon: 'Kommt später',
     loadError: '{title} konnte nicht geladen werden. Bitte starte die App erneut.',
@@ -92,8 +89,8 @@ export default {
   success: {
     title: 'Gelöst!',
     defaultText: 'Alle Zahlen sind richtig. Stark gespielt!',
-    next: 'Nächstes Rätsel',
-    otherLevel: 'Andere Stufe',
+    next: 'Nächstes',
+    otherLevel: 'Stufe wechseln',
   },
 
   ads: {
@@ -136,7 +133,6 @@ export default {
       success: 'Alle Zahlen sind richtig. Stark gespielt!',
     },
     hashi: {
-      hintText: 'Von Insel zur Nachbarinsel ziehen: verbindet · nochmal ziehen: 2 Brücken · nochmal: löscht',
       levels: {
         1: { desc: 'Ideal für Einsteiger, kleine Rätsel' },
         2: { desc: 'Locker herausfordernd' },
@@ -147,7 +143,6 @@ export default {
       success: 'Alle Inseln korrekt verbunden. Stark gespielt!',
     },
     kakuro: {
-      hintText: 'Ziffern 1–9 ohne Wiederholung je Lauf, Summe muss stimmen',
       levels: {
         1: { desc: '7×7, entspannt' },
         2: { desc: '9×9, locker' },
@@ -158,7 +153,6 @@ export default {
       success: 'Alle Summen und Läufe stimmen. Stark gespielt!',
     },
     minesweeper: {
-      hintText: 'Tippen: aufdecken · Flaggen-Symbol antippen oder Feld gedrückt halten: Mine markieren',
       flagModeTitle: 'Flaggen-Modus',
       lost: '💥 Verloren — versuch es nochmal!',
       success: 'Alle Felder ohne Mine sind aufgedeckt. Stark gespielt!',
@@ -178,7 +172,6 @@ export default {
       },
     },
     futoshiki: {
-      hintText: 'Pfeilspitze zeigt immer zur kleineren Zahl',
       levels: {
         1: { desc: '5×5, viele Vorgaben' },
         2: { desc: '6×6' },
@@ -190,8 +183,6 @@ export default {
     },
     killerSudoku: {
       styleToggle: 'Stil',
-      styleLines: 'Linien',
-      styleColor: 'Farbe',
       levels: {
         1: { desc: 'Kleine Käfige, 6 Vorgaben' },
         2: { desc: 'Käfige bis 3 Felder, 4 Vorgaben' },

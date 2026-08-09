@@ -38,8 +38,6 @@ export default {
     inputModeToggleTitle: 'Input: on = popup keypad, off = fixed number row below',
     toggleFocus: 'Focus',
     toggleInput: 'Input',
-    toggleOff: 'Off',
-    toggleOn: 'On',
     favorite: 'Favorite',
     difficulty: {
       veryEasy: 'Very easy',
@@ -87,7 +85,6 @@ export default {
   },
 
   levels: {
-    chooseLevel: 'Choose a level',
     tutorial: 'Tutorial',
     tutorialComingSoon: 'Coming later',
     loadError: '{title} could not be loaded. Please restart the app.',
@@ -100,8 +97,8 @@ export default {
   success: {
     title: 'Solved!',
     defaultText: 'All numbers are correct. Well played!',
-    next: 'Next puzzle',
-    otherLevel: 'Other level',
+    next: 'Next',
+    otherLevel: 'Change level',
   },
 
   ads: {

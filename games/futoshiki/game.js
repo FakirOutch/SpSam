@@ -146,18 +146,17 @@ function markup(){
       <span class="level-chip" data-role="level"></span>
     </div>
     <div class="hint-row">
-      <div class="timer-chip">⏱ <span data-role="timer">00:00</span></div>
       <button class="hint-btn" data-action="hint">💡 <span data-role="hint-count">3</span> ${t('common.hintsSuffix')}</button>
+      <div class="timer-chip">⏱ <span data-role="timer">00:00</span></div>
+      <button class="reveal-btn" data-action="reveal" title="${t('common.reveal')}" aria-label="${t('common.reveal')}">🔍</button>
     </div>
     <div class="cage-style-row" data-role="toggle-strip">
       <div class="toggle-group" title="${t('common.inputModeToggleTitle')}">
         <span class="toggle-name">${t('common.toggleInput')}</span>
-        <span class="cage-style-label">${t('common.toggleOff')}</span>
         <label class="switch">
-          <input type="checkbox" data-action="input-mode" checked>
+          <input type="checkbox" data-action="input-mode" checked aria-label="${t('common.toggleInput')}">
           <span class="slider"></span>
         </label>
-        <span class="cage-style-label">${t('common.toggleOn')}</span>
       </div>
     </div>
     <div class="futo-wrap">
@@ -166,12 +165,10 @@ function markup(){
         <div class="numpad" data-role="numpad"></div>
       </div>
     </div>
-    <p class="futo-hint-text">${t('game.futoshiki.hintText')}</p>
     <div class="grid-actions">
       <button class="btn secondary block" data-action="new">${t('common.newPuzzle')}</button>
       <button class="btn block" data-action="check" disabled>${t('common.check')}</button>
     </div>
-    <button class="reveal-link" data-action="reveal">${t('common.reveal')}</button>
     <div class="inline-input hidden" data-role="inline-input">
       <div class="numpad" data-role="inline-numpad"></div>
       <button class="inline-delete-btn" data-action="inline-delete">🗑️ ${t('common.deleteNumber')}</button>
@@ -284,7 +281,7 @@ function applyGameToUi(){
   root.querySelector('[data-role="level"]').textContent = context.starsFor(game.level.id);
   root.querySelector('[data-role="timer"]').textContent = formatTime(game.elapsedSeconds);
   const reveal = root.querySelector('[data-action="reveal"]');
-  reveal.textContent = t('common.reveal'); reveal.disabled = false;
+  reveal.title = t('common.reveal'); reveal.setAttribute('aria-label', t('common.reveal')); reveal.disabled = false; reveal.classList.remove('used');
   root.querySelector('[data-action="input-mode"]').checked = game.inputMode === 'popup';
   root.querySelector('[data-role="inline-input"]').classList.toggle('hidden', game.inputMode === 'popup');
   refreshHintButton();
@@ -433,7 +430,7 @@ function revealSolution(){
   game.counted = true;
   stopTimer(); clearSave(); renderBoard(); updateCheckButton();
   const reveal = root.querySelector('[data-action="reveal"]');
-  reveal.textContent = t('common.revealed'); reveal.disabled = true;
+  reveal.title = t('common.revealed'); reveal.setAttribute('aria-label', t('common.revealed')); reveal.disabled = true; reveal.classList.add('used');
 }
 
 export function renderLevelsList(container, actions){

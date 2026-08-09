@@ -151,7 +151,6 @@ function markup(){
     <div class="mine-board-wrap">
       <div class="mine-grid" data-role="grid"></div>
     </div>
-    <p class="mine-hint-text">${t('game.minesweeper.hintText')}</p>
     <div class="grid-actions">
       <button class="btn secondary block" data-action="new">${t('common.newGameLabel')}</button>
     </div>
