@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title data-i18n="app.title">Meine Spielesammlung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== SCREEN: PROFIL ANLEGEN ===================== -->
+  <section id="screen-profile">
+    <div class="mascot-blob">🎲</div>
+    <h1 data-i18n="profile.welcome">Willkommen!</h1>
+    <p data-i18n="profile.subtitle">Leg dein Profil an, um loszuspielen.</p>
+    <input id="profile-name-input" class="input-pill" type="text" data-i18n-placeholder="profile.namePlaceholder" placeholder="Dein Name" maxlength="20">
+    <button class="btn block" style="max-width:320px" id="btn-create-profile" data-i18n="profile.start">Los geht's</button>
+  </section>
+
+  <!-- ===================== SCREEN: STARTBILDSCHIRM / SAMMLUNG ===================== -->
+  <section id="screen-home" class="hidden">
+    <div class="topbar">
+      <div class="greeting"></div>
+      <div style="display:flex; gap:8px;">
+        <button class="icon-btn" id="btn-lang-panel" data-i18n-title="home.langPanelIcon" title="Sprache">🌐</button>
+        <button class="icon-btn" id="btn-dev-panel" data-i18n-title="home.devPanelIcon" title="Eigenschaften">⚙️</button>
+      </div>
+    </div>
+
+    <div class="section-title" data-i18n="home.collectionTitle">Deine Spielesammlung</div>
+    <div class="game-grid" id="game-grid"></div>
+
+    <div class="icongrid-wrap hidden" id="game-icongrid">
+      <div class="icongrid-grid" id="icongrid-page"></div>
+      <div class="icongrid-nav" id="icongrid-nav">
+        <button class="icon-btn" id="btn-icongrid-prev">←</button>
+        <div class="icongrid-dots" id="icongrid-dots"></div>
+        <button class="icon-btn" id="btn-icongrid-next">→</button>
+      </div>
+    </div>
+
+    <!-- Ansichtsauswahl: Liste oder 3x3-Raster, dezent unten links -->
+    <div class="view-toggle" id="view-toggle">
+      <button id="btn-view-list" data-i18n-title="home.listView" title="Listenansicht">☰</button>
+      <button id="btn-view-grid" data-i18n-title="home.gridView" title="Rasteransicht">▦</button>
+    </div>
+  </section>
+
+  <!-- Sprachpanel: Platzhalter für spätere Sprachauswahl -->
+  <div class="dev-panel hidden" id="lang-panel">
+    <h4 data-i18n="panel.lang.title">Sprache</h4>
+    <div class="dev-row" style="flex-direction:column; align-items:flex-start; gap:10px;">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="radio" name="lang" value="de" id="lang-de" checked> <span data-i18n="panel.lang.german">Deutsch</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; opacity:.5;">
+        <input type="radio" name="lang" value="en" id="lang-en" disabled> <span data-i18n="panel.lang.english">English</span> <span class="badge-soon" data-i18n="home.badgeSoon">bald</span>
+      </label>
+    </div>
+    <small data-i18n="panel.lang.moreComingSoon">Weitere Sprachen folgen in einer späteren Version.</small>
+  </div>
+
+  <!-- Dev-Panel: simuliert Netzwerk- & Kaufstatus (Platzhalter für echte Plugins) -->
+  <div class="dev-panel hidden" id="dev-panel">
+    <h4 data-i18n="panel.dev.title">Eigenschaften</h4>
+    <div class="dev-row">
+      <span data-i18n="panel.dev.online">Online</span>
+      <label class="switch"><input type="checkbox" id="toggle-online" checked><span class="slider"></span></label>
+    </div>
+    <div class="dev-row">
+      <span data-i18n="panel.dev.purchased">App gekauft</span>
+      <label class="switch"><input type="checkbox" id="toggle-purchased"><span class="slider"></span></label>
+    </div>
+    <small data-i18n="panel.dev.note">In der echten App ersetzt durch Network-Plugin & Kauf-/Lizenzstatus.</small>
+  </div>
+
+  <!-- ===================== SCREEN: LEVELAUSWAHL (geteilt von allen Spielen) ===================== -->
+  <section id="screen-levels" class="hidden">
+    <div class="topbar" style="padding-left:0;padding-right:0;">
+      <button class="icon-btn" id="btn-levels-back">←</button>
+      <h2 id="levels-title">Sudoku</h2>
+      <div style="width:42px;"></div>
+    </div>
+    <div class="section-title" data-i18n="levels.chooseLevel">Stufe wählen</div>
+    <div class="levels-list" id="levels-list"></div>
+
+    <!--
+      TODO (Platzhalter, noch nicht funktional):
+      Tutorial-Funktion je Spiel. Umsetzung/Konzept noch offen — z.B.
+      interaktive Schritt-für-Schritt-Einführung vs. reiner Regel-Text vs.
+      Video. Bewusst als eigener, gleich großer Button wie die Stufen-
+      Auswahl angelegt, damit er später einfach "scharf" geschaltet werden
+      kann, ohne das Layout anzupassen.
+    -->
+    <button class="level-btn tutorial-btn" id="btn-tutorial" disabled>
+      <span style="font-size:20px; width:20px; text-align:center;">🎓</span>
+      <div class="label"><b data-i18n="levels.tutorial">Tutorial</b><small data-i18n="levels.tutorialComingSoon">Kommt später</small></div>
+      <span class="badge-soon" data-i18n="home.badgeSoon">bald</span>
+    </button>
+
+  </section>
+
+  <!-- Dynamischer Host für vollständig modularisierte Spiele. Das jeweilige
+       Modul erzeugt und entfernt sein DOM selbst per mount()/unmount(). -->
+  <section id="screen-module-game" class="hidden">
+    <div id="game-container"></div>
+    <!-- Gemeinsame, bewusst neutrale Ladeanzeige (kein erfundener
+         Fortschrittsbalken — bei Backtracking lässt sich die Restdauer
+         nicht zuverlässig vorhersagen). Über context.loading.show()/hide()
+         von jedem Modul nutzbar, nicht Kakuro-spezifisch. -->
+    <div class="module-loading hidden" id="module-loading">
+      <div class="module-loading-card">
+        <div class="module-loading-spinner"></div>
+        <p data-role="loading-text">Rätsel wird erstellt …</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Erfolgsmeldung -->
+  <div class="success-overlay hidden" id="success-overlay">
+    <div class="success-card">
+      <div class="emoji">🎉</div>
+      <h2 data-i18n="success.title">Gelöst!</h2>
+      <p id="success-text" data-i18n="success.defaultText">Alle Zahlen sind richtig. Stark gespielt!</p>
+      <div class="success-actions">
+        <button class="btn block" id="btn-success-next" data-i18n="success.next">Nächstes Rätsel</button>
+        <button class="btn ghost block" id="btn-success-levels" data-i18n="success.otherLevel">Andere Stufe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Werbebanner (nur Gratisversion). #ad-content zeigt zunächst diesen
+       statischen Platzhalter, wird danach von app.js/rotateAd() alle 60s
+       mit AD_SAMPLES überschrieben — bewusst simulierter Fremdinhalt
+       (fiktive Drittanbieter-Werbetexte), nicht Teil der App-eigenen
+       Oberflächensprache, siehe README/Phase-1-Bericht. -->
+  <div class="ad-banner hidden" id="ad-banner">
+    <span class="tag" data-i18n="ads.tag">AD</span>
+    <div class="content" id="ad-content"><b data-i18n="ads.placeholderLabel">Werbung</b> — <span data-i18n="ads.placeholderSuffix">Platzhalterinhalt</span></div>
+    <span class="cta" data-i18n="ads.cta">Mehr</span>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

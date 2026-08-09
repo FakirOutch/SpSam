@@ -1,0 +1,32 @@
+.game-hashi{ padding:6px 16px 24px; }
+.game-hashi .hashi-wrap{
+  position:relative;
+  width:100%;
+  max-width:400px;
+  margin:0 auto;
+}
+.game-hashi .hashi-ratio-box{
+  width:100%; padding-bottom:100%; position:relative;
+  background:var(--surface);
+  box-shadow:var(--shadow-soft);
+  overflow:hidden;
+}
+.game-hashi .hashi-svg{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+.game-hashi .hashi-gridline{ stroke:var(--ink-faint); stroke-width:1.5; opacity:.55; }
+.game-hashi .hashi-hint{
+  text-align:center; font-size:12.5px; color:var(--ink-soft);
+  margin:14px 6px 0; line-height:1.5;
+}
+.game-hashi .hashi-island{ cursor:grab; touch-action:none; }
+.game-hashi .hashi-island circle.base{ fill:var(--surface); stroke:var(--lilac); stroke-width:3; }
+.game-hashi .hashi-island.selected circle.base{ stroke:var(--accent); stroke-width:4; }
+.game-hashi .hashi-island.done circle.base{ fill:var(--success-bg); stroke:var(--success); }
+.game-hashi .hashi-island.wrong circle.base{ fill:var(--danger-bg); stroke:var(--danger-ink); stroke-width:3; }
+.game-hashi .hashi-island text{
+  font-family:var(--font-display); font-weight:700; font-size:15px;
+  fill:var(--ink); text-anchor:middle; dominant-baseline:central; pointer-events:none;
+}
+.game-hashi .hashi-island.done text{ fill:var(--success); }
+.game-hashi .hashi-island.wrong text{ fill:var(--danger-ink); }
+.game-hashi .hashi-bridge{ stroke:var(--primary-dark); stroke-width:4; stroke-linecap:round; cursor:pointer; }
+.game-hashi .hashi-drag-preview{ stroke:var(--accent); stroke-width:4; stroke-linecap:round; stroke-dasharray:7 5; pointer-events:none; }
