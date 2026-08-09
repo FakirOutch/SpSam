@@ -1,0 +1,4033 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Meine Spielesammlung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN-TOKEN-SYSTEM
+   Diese Variablen sind die "Design Language" der ganzen App.
+   Jedes künftige Spiel in der Sammlung soll ausschließlich diese
+   Variablen benutzen (Farben, Radien, Schatten, Schriften),
+   damit die App später einheitlich wirkt, egal wie viele Spiele
+   dazukommen. In einer echten App-Struktur gehört dieser Block
+   in eine gemeinsame styles/tokens.css, die von jedem Spiel
+   importiert wird.
+   ============================================================ */
+:root{
+  --bg:            #F4F8FB;
+  --surface:       #FFFFFF;
+  --surface-soft:  #EAF2F6;
+
+  --ink:           #33414E;
+  --ink-soft:      #7C8B99;
+  --ink-faint:     #AEBBC6;
+
+  --primary:       #6FB3A0;
+  --primary-dark:  #4F9682;
+  --primary-bg:    #DCEEE7;
+
+  --accent:        #F3AE8D;
+  --accent-dark:   #DD8B62;
+  --accent-bg:     #FCE7DA;
+
+  --lilac:         #B6A6DE;
+  --lilac-dark:    #9683C7;
+  --lilac-bg:      #EBE5F8;
+
+  --danger:        #E8828A;
+  --danger-bg:     #FBDEE0;
+  --danger-ink:    #B8505C;
+
+  --success:       #4E9C7C;
+  --success-bg:    #DCEEE3;
+
+  --radius-xl: 32px;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
+
+  --shadow-soft: 0 10px 24px rgba(51,65,78,0.10);
+  --shadow-press: 0 3px 8px rgba(51,65,78,0.14);
+  --shadow-pop:  0 16px 40px rgba(51,65,78,0.22);
+
+  --font-display: 'Baloo 2', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family:var(--font-body);
+  background:
+    radial-gradient(circle at 12% 8%, var(--lilac-bg) 0%, transparent 45%),
+    radial-gradient(circle at 88% 92%, var(--accent-bg) 0%, transparent 45%),
+    var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+}
+#app{
+  width:100%;
+  max-width:480px;
+  min-height:100vh;
+  background:transparent;
+  position:relative;
+  padding-bottom:90px; /* Platz für Werbebanner */
+}
+.hidden{ display:none !important; }
+
+h1,h2,h3{ font-family:var(--font-display); margin:0; color:var(--ink); }
+
+button{ font-family:var(--font-body); border:none; cursor:pointer; }
+
+/* ---------- generische Buttons ---------- */
+.btn{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:16px;
+  padding:14px 22px;
+  border-radius:var(--radius-lg);
+  background:var(--primary);
+  color:#fff;
+  box-shadow:var(--shadow-soft);
+  transition:transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.btn:active{ transform:translateY(2px) scale(.98); box-shadow:var(--shadow-press); }
+.btn.secondary{ background:var(--lilac); }
+.btn.accent{ background:var(--accent); }
+.btn.ghost{
+  background:var(--surface);
+  color:var(--primary-dark);
+  box-shadow:0 0 0 2px var(--primary-bg) inset;
+}
+.btn.block{ width:100%; display:block; }
+.btn:disabled{ opacity:.45; cursor:not-allowed; box-shadow:none; }
+
+/* ---------- Kopfzeile ---------- */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:22px 20px 10px;
+}
+.topbar .greeting{ font-family:var(--font-display); font-size:20px; }
+.topbar .greeting span{ color:var(--primary-dark); }
+.icon-btn{
+  width:42px; height:42px; border-radius:50%;
+  background:var(--surface); box-shadow:var(--shadow-soft);
+  display:flex; align-items:center; justify-content:center; font-size:19px;
+}
+
+/* ---------- Screen: Profil anlegen ---------- */
+#screen-profile{
+  min-height:100vh; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; padding:32px;
+  text-align:center;
+}
+.mascot-blob{
+  width:120px; height:120px; border-radius:42% 58% 60% 40% / 45% 40% 60% 55%;
+  background:linear-gradient(135deg, var(--primary), var(--lilac));
+  display:flex; align-items:center; justify-content:center;
+  font-size:52px; margin-bottom:22px; box-shadow:var(--shadow-soft);
+}
+#screen-profile h1{ font-size:26px; margin-bottom:6px; }
+#screen-profile p{ color:var(--ink-soft); margin:0 0 26px; font-size:15px; }
+.input-pill{
+  width:100%; max-width:320px;
+  padding:16px 20px; border-radius:var(--radius-lg);
+  border:2px solid var(--primary-bg); background:var(--surface);
+  font-family:var(--font-body); font-size:16px; color:var(--ink);
+  outline:none; margin-bottom:18px;
+}
+.input-pill:focus{ border-color:var(--primary); }
+
+/* ---------- Screen: Startbildschirm / Sammlung ---------- */
+.section-title{
+  font-size:14px; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--ink-soft); font-weight:700; padding:6px 20px;
+}
+.game-grid{ display:flex; flex-direction:column; gap:16px; padding:8px 20px 20px; }
+
+.game-card{
+  position:relative;
+  background:var(--surface);
+  border-radius:var(--radius-xl);
+  padding:18px;
+  box-shadow:var(--shadow-soft);
+  display:flex; align-items:center; gap:16px;
+  overflow:hidden;
+}
+.game-card .icon{
+  width:58px; height:58px; border-radius:50%;
+  background:var(--primary-bg); color:var(--primary-dark);
+  display:flex; align-items:center; justify-content:center;
+  font-size:26px; flex-shrink:0;
+}
+.game-card .info{ flex:1; min-width:0; }
+.game-card .info h3{ font-size:18px; }
+.game-card .stats{ font-size:12.5px; color:var(--ink-soft); margin-top:4px; display:flex; gap:12px; flex-wrap:wrap; }
+.game-card.locked{ filter:grayscale(.35); }
+.game-card.locked::after{
+  content:"🔒 nur online verfügbar";
+  position:absolute; inset:0;
+  background:rgba(255,255,255,.82);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+  color:var(--ink-soft); text-align:center; padding:0 20px;
+}
+.game-card.soon{ opacity:.55; }
+.game-card.soon .icon{ background:var(--surface-soft); color:var(--ink-faint); }
+.badge-soon{
+  font-size:11px; font-weight:800; color:var(--lilac-dark);
+  background:var(--lilac-bg); padding:3px 10px; border-radius:999px;
+  margin-left:8px; vertical-align:middle;
+}
+.badge-new{
+  font-size:11px; font-weight:800; color:#fff;
+  background:var(--accent); padding:3px 10px; border-radius:999px;
+  margin-left:8px; vertical-align:middle;
+}
+.game-card.favable{ padding-right:56px; }
+.game-card .fav-btn{
+  position:absolute; top:14px; right:14px;
+  width:34px; height:34px; border-radius:50%;
+  background:var(--surface-soft); color:var(--ink-faint);
+  display:flex; align-items:center; justify-content:center; font-size:16px;
+  flex-shrink:0;
+}
+.game-card .fav-btn.active{ background:var(--accent-bg); color:var(--accent-dark); }
+
+/* ---------- Ansichtsauswahl (unten links) ---------- */
+.view-toggle{
+  position:fixed; left:16px; bottom:20px; z-index:55;
+  display:flex; gap:4px; background:var(--surface); padding:5px; border-radius:999px;
+  box-shadow:var(--shadow-soft);
+  transition:bottom .15s ease;
+}
+.view-toggle.lifted{ bottom:86px; } /* rutscht hoch, wenn das Werbebanner sichtbar ist */
+.view-toggle button{
+  width:32px; height:32px; border-radius:50%; background:transparent;
+  display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--ink-faint);
+}
+.view-toggle button.active{ background:var(--primary-bg); color:var(--primary-dark); }
+
+/* ---------- Rasteransicht (3x3 wie Handy-Startbildschirm) ---------- */
+.icongrid-wrap{ padding:8px 20px 90px; }
+.icongrid-grid{
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:14px;
+}
+.icongrid-tile{
+  position:relative;
+  aspect-ratio:1/1;
+  border-radius:var(--radius-lg);
+  background:var(--surface);
+  box-shadow:var(--shadow-soft);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+  padding:10px;
+}
+.icongrid-tile .icon{ font-size:28px; }
+.icongrid-tile .label{
+  font-family:var(--font-display); font-weight:700; font-size:12px;
+  color:var(--ink); text-align:center; line-height:1.2;
+}
+.icongrid-tile.soon{ opacity:.5; }
+.icongrid-tile.locked{ filter:grayscale(.35); }
+.icongrid-tile.locked::after{
+  content:"🔒"; position:absolute; inset:0; border-radius:var(--radius-lg);
+  background:rgba(255,255,255,.82); display:flex; align-items:center; justify-content:center; font-size:20px;
+}
+.icongrid-badge-new{
+  position:absolute; top:6px; left:6px; font-size:9px; font-weight:800; color:#fff;
+  background:var(--accent); padding:2px 7px; border-radius:999px; letter-spacing:.02em;
+}
+.icongrid-fav{
+  position:absolute; top:4px; right:4px; width:24px; height:24px; border-radius:50%;
+  background:var(--surface-soft); display:flex; align-items:center; justify-content:center; font-size:12px;
+  color:var(--ink-faint);
+}
+.icongrid-fav.active{ color:var(--accent-dark); background:var(--accent-bg); }
+.icongrid-nav{ display:flex; align-items:center; justify-content:center; gap:14px; margin-top:16px; }
+.icongrid-nav .icon-btn:disabled{ opacity:.3; }
+.icongrid-nav.single-page{ display:none; }
+.icongrid-dots{ display:flex; gap:6px; }
+.icongrid-dots span{ width:7px; height:7px; border-radius:50%; background:var(--surface-soft); }
+.icongrid-dots span.active{ background:var(--primary); }
+
+/* ---------- Dev-Panel (simuliert Netz-/Kaufstatus) ---------- */
+.dev-panel{
+  position:fixed; top:70px; right:16px; z-index:60;
+  background:var(--surface); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-pop); padding:16px; width:230px;
+  font-size:13px;
+}
+.dev-panel h4{ font-family:var(--font-display); font-size:13px; margin:0 0 10px; color:var(--ink-soft); }
+.dev-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.switch{ position:relative; width:44px; height:24px; }
+.switch input{ opacity:0; width:0; height:0; }
+.slider{
+  position:absolute; inset:0; background:var(--surface-soft);
+  border-radius:999px; transition:.2s; cursor:pointer;
+}
+.slider::before{
+  content:""; position:absolute; width:18px; height:18px; left:3px; top:3px;
+  background:#fff; border-radius:50%; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.25);
+}
+input:checked + .slider{ background:var(--primary); }
+input:checked + .slider::before{ transform:translateX(20px); }
+.dev-panel small{ color:var(--ink-faint); line-height:1.4; display:block; margin-top:4px; }
+
+/* ---------- Werbebanner ---------- */
+.ad-banner{
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:480px;
+  background:var(--surface); border-top:2px solid var(--surface-soft);
+  padding:12px 18px; display:flex; align-items:center; gap:12px;
+  box-shadow:0 -6px 18px rgba(51,65,78,.08); z-index:50;
+}
+.ad-banner .tag{
+  font-size:10px; font-weight:800; color:#fff; background:var(--ink-faint);
+  padding:2px 7px; border-radius:6px; letter-spacing:.03em;
+}
+.ad-banner .content{ flex:1; font-size:13px; color:var(--ink-soft); }
+.ad-banner .content b{ color:var(--ink); }
+.ad-banner .cta{
+  font-family:var(--font-display); font-weight:700; font-size:12px;
+  color:var(--primary-dark); background:var(--primary-bg);
+  padding:8px 12px; border-radius:var(--radius-md);
+}
+
+/* ---------- Screen: Levelauswahl ---------- */
+#screen-levels{ padding:10px 20px 30px; }
+.levels-list{ display:flex; flex-direction:column; gap:12px; margin-top:14px; }
+.level-btn{
+  display:flex; align-items:center; gap:14px;
+  background:var(--surface); border-radius:var(--radius-lg);
+  padding:16px 18px; box-shadow:var(--shadow-soft);
+  text-align:left;
+}
+.level-btn .dots{ display:flex; gap:4px; }
+.level-btn .dots span{ width:8px; height:8px; border-radius:50%; background:var(--surface-soft); }
+.level-btn .dots span.on{ background:var(--accent); }
+.level-btn .label{ flex:1; }
+.level-btn .label b{ font-family:var(--font-display); font-size:16px; display:block; }
+.level-btn .label small{ color:var(--ink-soft); }
+.level-btn .arrow{ color:var(--ink-faint); font-size:18px; }
+.tutorial-btn{
+  width:100%; margin-top:10px; opacity:.6; cursor:not-allowed;
+  justify-content:flex-start;
+}
+.tutorial-btn:active{ transform:none; }
+
+/* ---------- Screen: Sudoku ---------- */
+#screen-game{ padding:6px 16px 24px; }
+.game-header{ display:flex; align-items:center; justify-content:space-between; padding:10px 4px 16px; }
+.game-header h2{ font-size:19px; }
+.level-chip{
+  font-family:var(--font-display); font-size:14px; font-weight:700;
+  background:var(--accent-bg); color:var(--accent-dark);
+  padding:6px 12px; border-radius:999px; letter-spacing:1px;
+}
+
+.sudoku-wrap{
+  position:relative;
+  width:100%;
+  max-width:400px;
+  margin:0 auto;
+}
+/* Fester quadratischer Rahmen unabhängig vom Zellinhalt: das äußere Element
+   bestimmt die Höhe über den padding-bottom-Trick EINMALIG beim Layout,
+   das innere Grid füllt ihn absolut aus. So kann kein Reflow beim
+   Neu-Mischen mehr etwas verschieben, weil sich die Höhe nie aus dem
+   Zellinhalt (Text/Schriftgröße) ableitet. */
+.sudoku-ratio-box{ width:100%; padding-bottom:100%; position:relative; }
+.thermo-overlay{ position:absolute; inset:0; pointer-events:none; z-index:1; }
+.thermo-line{
+  fill:none; stroke-opacity:.6;
+  stroke-width:15; stroke-linecap:round; stroke-linejoin:round;
+}
+.thermo-bulb{ fill-opacity:.6; }
+.sudoku-grid{
+  position:absolute; inset:0;
+  display:grid;
+  grid-template-columns:repeat(9, 1fr);
+  grid-template-rows:repeat(9, 1fr);
+  overflow:hidden;
+  background:var(--surface);
+  box-shadow:var(--shadow-soft);
+}
+.cell{
+  background:var(--surface);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-size:18px; font-weight:600;
+  color:var(--ink); user-select:none; position:relative;
+  min-width:0; min-height:0; /* verhindert, dass Grid-Items den Inhalt aufblähen */
+}
+.cell.given{ color:var(--primary-dark); background:var(--primary-bg); }
+.cell.editable:active{ background:var(--lilac-bg); }
+.cell.wrong{ background:var(--danger-bg); color:var(--danger-ink); }
+/* Käfig-Linien (Killer Sudoku), Auswahlrahmen und die 3x3-Blocklinien laufen
+   alle über box-shadow (nötig, damit die Blocklinien das dunkel-weiß-dunkel-
+   Streifenmuster bekommen können — mit einer echten CSS-border lässt sich
+   kein Streifen MITTEN in der Linie erzeugen). --lines wird als EINE fertig
+   zusammengesetzte Liste von renderGrid() gesetzt (Blocklinien + Käfiglinien
+   zusammen); --select bleibt separat, damit reines Hinzufügen/Entfernen der
+   .selected-Klasse (ohne Neu-Rendern) weiterhin per CSS-Kaskade funktioniert.
+   BUGFIX (weiterhin relevant): 'none' ist als einzelner Eintrag innerhalb
+   einer mehrteiligen box-shadow-Liste UNGÜLTIGES CSS — ein unsichtbarer,
+   aber gültiger Platzhalter-Schatten verhindert, dass die ganze Liste kippt. */
+.cell{
+  --lines: inset 0 0 0 0 transparent;
+  --select: 0 0 0 0 transparent;
+  --highlight: 0 0 0 0 transparent;
+  box-shadow: var(--lines), var(--select), var(--highlight);
+}
+.cell.selected{ --select: inset 0 0 0 2px var(--accent); }
+.cell.rc-highlight{ --highlight: inset 0 0 0 999px rgba(51,65,78,0.13); }
+.cell.wrong{ box-shadow: inset 0 0 0 2px var(--danger-ink); }
+.cage-sum{
+  position:absolute; top:2px; left:4px;
+  font-family:var(--font-body); font-weight:800; font-size:10px;
+  color:var(--accent-dark); line-height:1; pointer-events:none;
+}
+
+.grid-actions{ display:flex; gap:10px; margin-top:18px; }
+
+.hint-row{ display:flex; justify-content:center; align-items:center; gap:10px; margin:0 0 14px; }
+.timer-chip{
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+  background:var(--surface); color:var(--ink); box-shadow:var(--shadow-soft);
+  padding:8px 16px; border-radius:999px;
+  display:flex; align-items:center; gap:5px;
+}
+.hint-btn{
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+  background:var(--accent-bg); color:var(--accent-dark);
+  padding:8px 16px; border-radius:999px; box-shadow:var(--shadow-soft);
+  display:flex; align-items:center; gap:5px;
+}
+.hint-btn:disabled{ opacity:.4; }
+.hint-btn.flash{ animation:hintFlash .5s ease; }
+@keyframes hintFlash{ 0%{ transform:scale(1); } 40%{ transform:scale(1.12); } 100%{ transform:scale(1); } }
+.cage-style-row{
+  display:flex; align-items:center; justify-content:center; gap:20px;
+  margin:0 0 14px; flex-wrap:wrap;
+  transition:opacity .12s ease;
+}
+.cage-style-row.toggles-locked{ pointer-events:none; opacity:.45; }
+.toggle-group{
+  display:flex; align-items:center; gap:8px;
+  font-family:var(--font-display); font-weight:700; font-size:12.5px;
+  color:var(--ink-soft);
+}
+.toggle-name{
+  font-family:var(--font-display); font-weight:800; font-size:12.5px;
+  color:var(--ink); margin-right:2px;
+}
+.cage-style-row .switch{ width:38px; height:21px; }
+.cage-style-row .slider::before{ width:15px; height:15px; left:3px; top:3px; }
+.cage-style-row input:checked + .slider::before{ transform:translateX(17px); }
+
+.reveal-link{
+  display:block; width:100%; text-align:center; margin-top:12px;
+  background:none; color:var(--ink-soft); font-family:var(--font-body); font-size:12.5px;
+  text-decoration:underline; padding:6px;
+}
+
+/* Zifferblock-Popup — mittig im Gitter fixiert */
+.numpad-backdrop{
+  position:absolute; inset:0; background:rgba(244,248,251,.72);
+  backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center;
+  border-radius:var(--radius-md);
+  animation:fadeIn .12s ease;
+}
+/* Bei Sudoku/Killer Sudoku bleibt das Gitter während der Zahleneingabe normal
+   sichtbar (kein Abdunkeln/Weichzeichnen) — die Reihen-/Spalten-Hervorhebung
+   (grau) ist hier die einzige optische Hilfe, die nur so lange sichtbar ist,
+   wie der Anwender auf dem Feld ist. */
+#numpad-backdrop{ background:transparent; backdrop-filter:none; z-index:5; }
+#futo-numpad-backdrop{ background:transparent; backdrop-filter:none; z-index:5; }
+#kakuro-numpad-backdrop{ background:transparent; backdrop-filter:none; z-index:5; }
+.numpad{
+  background:var(--surface); border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-pop); padding:14px;
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;
+  animation:popIn .14s ease;
+}
+.numpad button{
+  width:52px; height:52px; border-radius:50%;
+  background:var(--primary-bg); color:var(--primary-dark);
+  font-family:var(--font-display); font-size:19px; font-weight:700;
+  box-shadow:var(--shadow-press);
+}
+.numpad button:active{ transform:scale(.92); }
+.numpad .clear-btn{
+  grid-column:1 / -1; border-radius:999px; width:100%; height:40px;
+  background:var(--danger-bg); color:var(--danger-ink); font-size:13px;
+}
+@keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+@keyframes popIn{ from{opacity:0; transform:scale(.85)} to{opacity:1; transform:scale(1)} }
+
+/* ---------- Direkteingabe: feste 3x3-Zahlenauswahl statt Popup ----------
+   Gleicher optischer Stil wie der Popup-Zifferblock (dieselbe .numpad-
+   Klasse), aber standardmäßig neutral eingefärbt. Eine markierte Zahl
+   bekommt dieselbe Farbe wie vorgegebene ("fixe") Zahlen im Rätsel, damit
+   sofort erkennbar ist, welches Werkzeug aktuell aktiv ist. */
+.inline-input{
+  margin-top:18px;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.inline-input .numpad{ animation:none; margin:0 auto; }
+.inline-input .numpad button{
+  background:var(--surface-soft); color:var(--ink);
+}
+.inline-input .numpad button.marked{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:var(--shadow-press), inset 0 0 0 2px var(--primary-dark);
+}
+.inline-delete-btn{
+  width:100%; max-width:194px;
+  border-radius:999px; padding:12px 18px;
+  background:var(--danger-bg); color:var(--danger-ink);
+  font-family:var(--font-display); font-weight:700; font-size:13px;
+  box-shadow:var(--shadow-press);
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.inline-delete-btn.marked{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:var(--shadow-press), inset 0 0 0 2px var(--primary-dark);
+}
+
+/* ---------- Hashi (Hashiwokakero) — nutzt dieselben Tokens wie Sudoku ---------- */
+.hashi-wrap{
+  position:relative;
+  width:100%;
+  max-width:400px;
+  margin:0 auto;
+}
+.hashi-ratio-box{
+  width:100%; padding-bottom:100%; position:relative;
+  background:var(--surface);
+  box-shadow:var(--shadow-soft);
+  overflow:hidden;
+}
+.hashi-svg{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+.hashi-gridline{ stroke:var(--ink-faint); stroke-width:1.5; opacity:.55; }
+.hashi-hint{
+  text-align:center; font-size:12.5px; color:var(--ink-soft);
+  margin:14px 6px 0; line-height:1.5;
+}
+.hashi-island{ cursor:grab; touch-action:none; }
+.hashi-island circle.base{ fill:var(--surface); stroke:var(--lilac); stroke-width:3; }
+.hashi-island.selected circle.base{ stroke:var(--accent); stroke-width:4; }
+.hashi-island.done circle.base{ fill:var(--success-bg); stroke:var(--success); }
+.hashi-island.wrong circle.base{ fill:var(--danger-bg); stroke:var(--danger-ink); stroke-width:3; }
+.hashi-island text{
+  font-family:var(--font-display); font-weight:700; font-size:15px;
+  fill:var(--ink); text-anchor:middle; dominant-baseline:central; pointer-events:none;
+}
+.hashi-island.done text{ fill:var(--success); }
+.hashi-island.wrong text{ fill:var(--danger-ink); }
+.hashi-bridge{ stroke:var(--primary-dark); stroke-width:4; stroke-linecap:round; cursor:pointer; }
+.hashi-drag-preview{ stroke:var(--accent); stroke-width:4; stroke-linecap:round; stroke-dasharray:7 5; pointer-events:none; }
+
+/* ---------- Minesweeper: Benutzerdefiniert-Panel (in der geteilten Levelauswahl) ---------- */
+.mine-custom-panel{
+  background:var(--surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-soft);
+  padding:18px; margin-top:16px;
+}
+.mine-custom-row{ display:flex; gap:10px; margin-bottom:12px; }
+.mine-custom-row label{
+  flex:1; font-size:12px; color:var(--ink-soft); display:flex; flex-direction:column; gap:6px;
+  font-family:var(--font-display); font-weight:700;
+}
+.mine-custom-row input{
+  border:2px solid var(--primary-bg); border-radius:var(--radius-md); padding:10px;
+  font-size:15px; font-family:var(--font-body); color:var(--ink); width:100%; outline:none;
+}
+.mine-custom-row input:focus{ border-color:var(--primary); }
+.mine-custom-hint{ font-size:12px; color:var(--ink-soft); margin:0 0 14px; }
+
+/* ---------- Minesweeper: Spielbildschirm ---------- */
+.mine-hud{ display:flex; align-items:center; justify-content:center; gap:14px; margin:0 4px 14px; }
+.mine-hud-pill{
+  font-family:var(--font-display); font-weight:700; font-size:14px;
+  background:var(--surface); padding:8px 16px; border-radius:999px; box-shadow:var(--shadow-soft);
+  color:var(--ink); display:flex; align-items:center; gap:6px;
+}
+#btn-mine-flag-mode.active{ background:var(--accent-bg); color:var(--accent-dark); }
+.mine-status{
+  text-align:center; font-family:var(--font-display); font-weight:700; font-size:14px;
+  padding:10px; border-radius:var(--radius-md); margin:0 4px 14px;
+}
+.mine-status.lost{ background:var(--danger-bg); color:var(--danger-ink); }
+.mine-status.won{ background:var(--success-bg); color:var(--success); }
+.mine-board-wrap{ overflow-x:auto; padding-bottom:6px; -webkit-overflow-scrolling:touch; }
+.mine-grid{
+  display:grid; gap:1px; background:var(--ink-faint);
+  overflow:hidden; margin:0 auto;
+  box-shadow:var(--shadow-soft); width:max-content;
+}
+.mine-cell{
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:800;
+  background:var(--primary-bg); user-select:none; touch-action:manipulation;
+}
+.mine-cell.revealed{ background:var(--surface); cursor:default; }
+.mine-cell.flagged{ background:var(--accent-bg); }
+.mine-cell.mine-shown{ background:var(--surface-soft); }
+.mine-cell.mine-hit{ background:var(--danger-bg); }
+
+/* ---------- Futoshiki ---------- */
+.futo-wrap{ position:relative; width:100%; display:flex; justify-content:center; }
+.futo-grid{ display:grid; margin:0 auto; }
+.futo-cell{
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface); font-family:var(--font-display); font-weight:700;
+  border-radius:6px; box-shadow:inset 0 0 0 1.5px var(--ink-faint); user-select:none;
+}
+.futo-cell.given{ color:var(--primary-dark); background:var(--primary-bg); box-shadow:none; }
+.futo-cell.editable{ cursor:pointer; color:var(--ink); }
+.futo-cell.editable.selected{ box-shadow:inset 0 0 0 2px var(--accent); }
+.futo-cell.wrong{ background:var(--danger-bg); color:var(--danger-ink); box-shadow:inset 0 0 0 1.5px var(--danger-ink); }
+.futo-gap{ display:flex; align-items:center; justify-content:center; color:var(--accent-dark); font-weight:800; font-size:15px; }
+.futo-gap span{ display:inline-block; line-height:1; }
+
+/* ---------- Kakuro ---------- */
+.kakuro-wrap{ position:relative; width:100%; display:flex; justify-content:center; }
+.kakuro-grid{ display:grid; margin:0 auto; background:var(--ink-faint); gap:1px; overflow:hidden; box-shadow:var(--shadow-soft); }
+.kakuro-cell{
+  display:flex; align-items:center; justify-content:center;
+  background:var(--surface); font-family:var(--font-display); font-weight:700;
+  user-select:none;
+}
+.kakuro-cell.editable{ cursor:pointer; }
+.kakuro-cell.editable.selected{ box-shadow:inset 0 0 0 2px var(--accent); }
+.kakuro-cell.wrong{ background:var(--danger-bg); color:var(--danger-ink); }
+.kakuro-clue{
+  background:var(--primary-bg); position:relative;
+}
+.kakuro-clue.empty{ background:var(--primary-bg); }
+/* Diagonale Trennlinie oben-links nach unten-rechts. Regel: liegt die Zahl
+   unten links, gilt sie für die vertikale Reihe (Runter-Summe); liegt sie
+   oben rechts, gilt sie für die horizontale Reihe (Rechts-Summe).
+   Nur bei Feldern mit mindestens einem Hinweis. */
+.kakuro-clue:not(.empty)::before{
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(to top right,
+    transparent calc(50% - 0.75px),
+    var(--primary-dark) calc(50% - 0.75px),
+    var(--primary-dark) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px));
+}
+.kakuro-clue .down,
+.kakuro-clue .right{
+  position:absolute;
+  font-family:var(--font-display); font-weight:800; color:var(--primary-dark);
+  line-height:1;
+  background:var(--primary-bg); /* eigener Chip-Hintergrund, damit die Zahl nie auf der Diagonalen "klebt" */
+  padding:1px 3px;
+  border-radius:3px;
+}
+.kakuro-clue .down{ bottom:3px; left:3px; }   /* vertikale Reihe -> unten links */
+.kakuro-clue .right{ top:3px; right:3px; }    /* horizontale Reihe -> oben rechts */
+
+/* Erfolgsmeldung */
+.success-overlay{
+  position:fixed; inset:0; background:rgba(51,65,78,.45);
+  display:flex; align-items:center; justify-content:center; z-index:100; padding:24px;
+}
+.success-card{
+  background:var(--surface); border-radius:var(--radius-xl);
+  padding:32px 26px; text-align:center; box-shadow:var(--shadow-pop);
+  max-width:320px; animation:popIn .18s ease;
+}
+.success-card .emoji{ font-size:46px; margin-bottom:10px; }
+.success-card h2{ font-size:22px; margin-bottom:6px; }
+.success-card p{ color:var(--ink-soft); font-size:14px; margin:0 0 22px; }
+.success-actions{ display:flex; flex-direction:column; gap:10px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== SCREEN: PROFIL ANLEGEN ===================== -->
+  <section id="screen-profile">
+    <div class="mascot-blob">🎲</div>
+    <h1>Willkommen!</h1>
+    <p>Leg dein Profil an, um loszuspielen.</p>
+    <input id="profile-name-input" class="input-pill" type="text" placeholder="Dein Name" maxlength="20">
+    <button class="btn block" style="max-width:320px" id="btn-create-profile">Los geht's</button>
+  </section>
+
+  <!-- ===================== SCREEN: STARTBILDSCHIRM / SAMMLUNG ===================== -->
+  <section id="screen-home" class="hidden">
+    <div class="topbar">
+      <div class="greeting">Hallo, <span id="home-username">Spieler</span> 👋</div>
+      <div style="display:flex; gap:8px;">
+        <button class="icon-btn" id="btn-lang-panel">🌐</button>
+        <button class="icon-btn" id="btn-dev-panel">⚙️</button>
+      </div>
+    </div>
+
+    <div class="section-title">Deine Spielesammlung</div>
+    <div class="game-grid" id="game-grid"></div>
+
+    <div class="icongrid-wrap hidden" id="game-icongrid">
+      <div class="icongrid-grid" id="icongrid-page"></div>
+      <div class="icongrid-nav" id="icongrid-nav">
+        <button class="icon-btn" id="btn-icongrid-prev">←</button>
+        <div class="icongrid-dots" id="icongrid-dots"></div>
+        <button class="icon-btn" id="btn-icongrid-next">→</button>
+      </div>
+    </div>
+
+    <!-- Ansichtsauswahl: Liste oder 3x3-Raster, dezent unten links -->
+    <div class="view-toggle" id="view-toggle">
+      <button id="btn-view-list" title="Listenansicht">☰</button>
+      <button id="btn-view-grid" title="Rasteransicht">▦</button>
+    </div>
+  </section>
+
+  <!-- Sprachpanel: Platzhalter für spätere Sprachauswahl -->
+  <div class="dev-panel hidden" id="lang-panel">
+    <h4>Sprache</h4>
+    <div class="dev-row" style="flex-direction:column; align-items:flex-start; gap:10px;">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="radio" name="lang" value="de" id="lang-de" checked> Deutsch
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; opacity:.5;">
+        <input type="radio" name="lang" value="en" disabled> English <span class="badge-soon">bald</span>
+      </label>
+    </div>
+    <small>Weitere Sprachen folgen in einer späteren Version.</small>
+  </div>
+
+  <!-- Dev-Panel: simuliert Netzwerk- & Kaufstatus (Platzhalter für echte Plugins) -->
+  <div class="dev-panel hidden" id="dev-panel">
+    <h4>Simulation (Prototyp)</h4>
+    <div class="dev-row">
+      <span>Online</span>
+      <label class="switch"><input type="checkbox" id="toggle-online" checked><span class="slider"></span></label>
+    </div>
+    <div class="dev-row">
+      <span>App gekauft</span>
+      <label class="switch"><input type="checkbox" id="toggle-purchased"><span class="slider"></span></label>
+    </div>
+    <small>In der echten App ersetzt durch Network-Plugin & Kauf-/Lizenzstatus.</small>
+  </div>
+
+  <!-- ===================== SCREEN: LEVELAUSWAHL (geteilt von allen Spielen) ===================== -->
+  <section id="screen-levels" class="hidden">
+    <div class="topbar" style="padding-left:0;padding-right:0;">
+      <button class="icon-btn" id="btn-levels-back">←</button>
+      <h2 id="levels-title">Sudoku</h2>
+      <div style="width:42px;"></div>
+    </div>
+    <div class="section-title">Stufe wählen</div>
+    <div class="levels-list" id="levels-list"></div>
+
+    <!--
+      TODO (Platzhalter, noch nicht funktional):
+      Tutorial-Funktion je Spiel. Umsetzung/Konzept noch offen — z.B.
+      interaktive Schritt-für-Schritt-Einführung vs. reiner Regel-Text vs.
+      Video. Bewusst als eigener, gleich großer Button wie die Stufen-
+      Auswahl angelegt, damit er später einfach "scharf" geschaltet werden
+      kann, ohne das Layout anzupassen.
+    -->
+    <button class="level-btn tutorial-btn" id="btn-tutorial" disabled>
+      <span style="font-size:20px; width:20px; text-align:center;">🎓</span>
+      <div class="label"><b>Tutorial</b><small>Kommt später</small></div>
+      <span class="badge-soon">bald</span>
+    </button>
+
+    <!-- Nur für Minesweeper "Benutzerdefiniert" -->
+    <div class="mine-custom-panel hidden" id="mine-custom-panel">
+      <div class="mine-custom-row">
+        <label>Breite
+          <input type="number" id="mine-custom-cols" min="5" max="40" value="16">
+        </label>
+        <label>Höhe
+          <input type="number" id="mine-custom-rows" min="5" max="24" value="16">
+        </label>
+        <label>Minen
+          <input type="number" id="mine-custom-mines" min="1" max="600" value="40">
+        </label>
+      </div>
+      <p class="mine-custom-hint">Werte werden automatisch auf ein spielbares Maß begrenzt.</p>
+      <button class="btn block" id="btn-mine-custom-start">Starten</button>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN: SUDOKU / KILLER SUDOKU (geteilt) ===================== -->
+  <section id="screen-game" class="hidden">
+    <div class="game-header">
+      <button class="icon-btn" id="btn-game-back">←</button>
+      <h2 id="game-title">Sudoku</h2>
+      <span class="level-chip" id="game-level-chip">Sehr leicht</span>
+    </div>
+    <div class="hint-row">
+      <div class="timer-chip">⏱ <span id="game-timer">00:00</span></div>
+      <button class="hint-btn" id="btn-game-hint">💡 <span id="game-hint-count">3</span> Tipps</button>
+    </div>
+    <div class="cage-style-row" id="toggle-strip">
+      <div class="toggle-group" title="Fokus: Reihe & Spalte beim Eintragen grau hervorheben">
+        <span class="toggle-name">Fokus</span>
+        <span class="cage-style-label">Aus</span>
+        <label class="switch">
+          <input type="checkbox" id="highlight-toggle-checkbox">
+          <span class="slider"></span>
+        </label>
+        <span class="cage-style-label">An</span>
+      </div>
+      <div class="toggle-group hidden" id="cage-style-group">
+        <span class="toggle-name">Stil</span>
+        <span class="cage-style-label">Linien</span>
+        <label class="switch">
+          <input type="checkbox" id="cage-style-checkbox">
+          <span class="slider"></span>
+        </label>
+        <span class="cage-style-label">Farbe</span>
+      </div>
+      <div class="toggle-group" title="Eingabe: An = Zifferblock-Popup, Aus = feste Zahlenauswahl unten">
+        <span class="toggle-name">Eingabe</span>
+        <span class="cage-style-label">Aus</span>
+        <label class="switch">
+          <input type="checkbox" id="input-mode-checkbox" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="cage-style-label">An</span>
+      </div>
+    </div>
+
+    <div class="sudoku-wrap">
+      <div class="sudoku-ratio-box">
+        <div class="sudoku-grid" id="sudoku-grid"></div>
+        <svg class="thermo-overlay" id="thermo-overlay" viewBox="0 0 396 396"></svg>
+        <div class="numpad-backdrop hidden" id="numpad-backdrop">
+          <div class="numpad" id="numpad">
+            <!-- 1-9 Buttons werden per JS erzeugt -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-actions">
+      <button class="btn secondary block" id="btn-new-puzzle">Neu mischen</button>
+      <button class="btn block" id="btn-check" disabled>Prüfen</button>
+    </div>
+    <button class="reveal-link" id="btn-game-reveal">Lösung anzeigen (zählt nicht als gelöst)</button>
+
+    <div class="inline-input hidden" id="inline-input">
+      <div class="numpad" id="inline-numpad"></div>
+      <button class="inline-delete-btn" id="inline-delete-btn">🗑️ Zahl löschen</button>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN: HASHI-SPIEL ===================== -->
+  <section id="screen-hashi" class="hidden">
+    <div class="game-header">
+      <button class="icon-btn" id="btn-hashi-back">←</button>
+      <h2>Hashi</h2>
+      <span class="level-chip" id="hashi-level-chip">Sehr leicht</span>
+    </div>
+    <div class="hint-row">
+      <div class="timer-chip">⏱ <span id="hashi-timer">00:00</span></div>
+      <button class="hint-btn" id="btn-hashi-hint">💡 <span id="hashi-hint-count">3</span> Tipps</button>
+    </div>
+
+    <div class="hashi-wrap">
+      <div class="hashi-ratio-box">
+        <svg id="hashi-svg" class="hashi-svg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+    <p class="hashi-hint">Von Insel zur Nachbarinsel ziehen: verbindet · nochmal ziehen: 2 Brücken · nochmal: löscht</p>
+
+    <div class="grid-actions">
+      <button class="btn secondary block" id="btn-hashi-new">Neu mischen</button>
+      <button class="btn block" id="btn-hashi-check" disabled>Prüfen</button>
+    </div>
+    <button class="reveal-link" id="btn-hashi-reveal">Lösung anzeigen (zählt nicht als gelöst)</button>
+  </section>
+
+  <!-- ===================== SCREEN: MINESWEEPER-SPIEL ===================== -->
+  <section id="screen-minesweeper" class="hidden">
+    <div class="game-header">
+      <button class="icon-btn" id="btn-mine-back">←</button>
+      <h2>Minesweeper</h2>
+      <span class="level-chip" id="mine-level-chip">Anfänger</span>
+    </div>
+    <div class="hint-row">
+      <button class="hint-btn" id="btn-mine-hint">💡 <span id="mine-hint-count">3</span> Tipps</button>
+    </div>
+
+    <div class="mine-hud">
+      <div class="mine-hud-pill">💣 <span id="mine-remaining">10</span></div>
+      <button class="icon-btn" id="btn-mine-flag-mode" title="Flaggen-Modus">🚩</button>
+      <div class="mine-hud-pill">⏱ <span id="mine-timer">000</span></div>
+    </div>
+
+    <div class="mine-status hidden" id="mine-status"></div>
+
+    <div class="mine-board-wrap">
+      <div class="mine-grid" id="mine-grid"></div>
+    </div>
+    <p class="hashi-hint">Tippen: aufdecken · Flaggen-Symbol antippen oder Feld gedrückt halten: Mine markieren</p>
+
+    <div class="grid-actions">
+      <button class="btn secondary block" id="btn-mine-new">Neues Spiel</button>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN: FUTOSHIKI-SPIEL ===================== -->
+  <section id="screen-futoshiki" class="hidden">
+    <div class="game-header">
+      <button class="icon-btn" id="btn-futo-back">←</button>
+      <h2>Futoshiki</h2>
+      <span class="level-chip" id="futo-level-chip">Sehr leicht</span>
+    </div>
+    <div class="hint-row">
+      <div class="timer-chip">⏱ <span id="futo-timer">00:00</span></div>
+      <button class="hint-btn" id="btn-futo-hint">💡 <span id="futo-hint-count">3</span> Tipps</button>
+    </div>
+    <div class="cage-style-row" id="futo-toggle-strip">
+      <div class="toggle-group" title="Eingabe: An = Zifferblock-Popup, Aus = feste Zahlenauswahl unten">
+        <span class="toggle-name">Eingabe</span>
+        <span class="cage-style-label">Aus</span>
+        <label class="switch">
+          <input type="checkbox" id="futo-input-mode-checkbox" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="cage-style-label">An</span>
+      </div>
+    </div>
+
+    <div class="futo-wrap" id="futo-wrap">
+      <div class="futo-grid" id="futo-grid"></div>
+      <div class="numpad-backdrop hidden" id="futo-numpad-backdrop">
+        <div class="numpad" id="futo-numpad"></div>
+      </div>
+    </div>
+    <p class="hashi-hint">Pfeilspitze zeigt immer zur kleineren Zahl</p>
+
+    <div class="grid-actions">
+      <button class="btn secondary block" id="btn-futo-new">Neu mischen</button>
+      <button class="btn block" id="btn-futo-check" disabled>Prüfen</button>
+    </div>
+    <button class="reveal-link" id="btn-futo-reveal">Lösung anzeigen (zählt nicht als gelöst)</button>
+
+    <div class="inline-input hidden" id="futo-inline-input">
+      <div class="numpad" id="futo-inline-numpad"></div>
+      <button class="inline-delete-btn" id="futo-inline-delete-btn">🗑️ Zahl löschen</button>
+    </div>
+  </section>
+
+  <!-- ===================== SCREEN: KAKURO-SPIEL ===================== -->
+  <section id="screen-kakuro" class="hidden">
+    <div class="game-header">
+      <button class="icon-btn" id="btn-kakuro-back">←</button>
+      <h2>Kakuro</h2>
+      <span class="level-chip" id="kakuro-level-chip">Sehr leicht</span>
+    </div>
+    <div class="hint-row">
+      <div class="timer-chip">⏱ <span id="kakuro-timer">00:00</span></div>
+      <button class="hint-btn" id="btn-kakuro-hint">💡 <span id="kakuro-hint-count">3</span> Tipps</button>
+    </div>
+    <div class="cage-style-row" id="kakuro-toggle-strip">
+      <div class="toggle-group" title="Eingabe: An = Zifferblock-Popup, Aus = feste Zahlenauswahl unten">
+        <span class="toggle-name">Eingabe</span>
+        <span class="cage-style-label">Aus</span>
+        <label class="switch">
+          <input type="checkbox" id="kakuro-input-mode-checkbox" checked>
+          <span class="slider"></span>
+        </label>
+        <span class="cage-style-label">An</span>
+      </div>
+    </div>
+
+    <div class="kakuro-wrap" id="kakuro-wrap">
+      <div class="kakuro-grid" id="kakuro-grid"></div>
+      <div class="numpad-backdrop hidden" id="kakuro-numpad-backdrop">
+        <div class="numpad" id="kakuro-numpad"></div>
+      </div>
+    </div>
+    <p class="hashi-hint">Ziffern 1–9 ohne Wiederholung je Lauf, Summe muss stimmen</p>
+
+    <div class="grid-actions">
+      <button class="btn secondary block" id="btn-kakuro-new">Neu mischen</button>
+      <button class="btn block" id="btn-kakuro-check" disabled>Prüfen</button>
+    </div>
+    <button class="reveal-link" id="btn-kakuro-reveal">Lösung anzeigen (zählt nicht als gelöst)</button>
+
+    <div class="inline-input hidden" id="kakuro-inline-input">
+      <div class="numpad" id="kakuro-inline-numpad"></div>
+      <button class="inline-delete-btn" id="kakuro-inline-delete-btn">🗑️ Zahl löschen</button>
+    </div>
+  </section>
+
+  <!-- Erfolgsmeldung -->
+  <div class="success-overlay hidden" id="success-overlay">
+    <div class="success-card">
+      <div class="emoji">🎉</div>
+      <h2>Gelöst!</h2>
+      <p id="success-text">Alle Zahlen sind richtig. Stark gespielt!</p>
+      <div class="success-actions">
+        <button class="btn block" id="btn-success-next">Nächstes Rätsel</button>
+        <button class="btn ghost block" id="btn-success-levels">Andere Stufe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Werbebanner (nur Gratisversion) -->
+  <div class="ad-banner hidden" id="ad-banner">
+    <span class="tag">AD</span>
+    <div class="content" id="ad-content"><b>Werbung</b> — Platzhalterinhalt</div>
+    <span class="cta">Mehr</span>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   ZUSTAND & SPEICHERUNG
+   localStorage steht hier stellvertretend für die spätere
+   native Speicherung (z.B. @capacitor/preferences).
+   ============================================================ */
+const STORAGE_KEY = 'spielesammlung_state_v1';
+
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  let parsed = null;
+  if(raw){ try{ parsed = JSON.parse(raw); }catch(e){} }
+  // Object.assign sorgt dafür, dass auch bei älteren gespeicherten Ständen
+  // (ohne die neueren Felder) sinnvolle Defaults ergänzt werden.
+  return Object.assign({
+    profileName: null,
+    lastOpenedGame: null,
+    stats: {},       // { gameId: { played:0, won:0 } }
+    favorites: [],   // Liste der Spiel-IDs, die der Anwender als Favorit markiert hat
+    viewMode: 'list', // 'list' oder 'grid' — Ansicht der Spielesammlung
+    language: 'de',  // Platzhalter für spätere Sprachauswahl
+    hints: {},       // { gameId: { date:'JJJJ-MM-TT', used:0 } } — max. 3 Tipps je Spiel und Tag
+    // Regler-Einstellungen (Fokus/Stil/Eingabe) je Spiel getrennt gespeichert,
+    // bleiben über Sitzungen und Spielwechsel hinweg erhalten, bis der
+    // Anwender sie selbst wieder ändert.
+    togglePrefs: {}, // { [gameId]: { highlight:bool, cageStyle:'fill'|'lines', inputMode:'popup'|'direct' } }
+  }, parsed || {});
+}
+function getTogglePref(gameId, key, fallback){
+  const rec = state.togglePrefs[gameId];
+  return (rec && rec[key] !== undefined) ? rec[key] : fallback;
+}
+function setTogglePref(gameId, key, value){
+  if(!state.togglePrefs[gameId]) state.togglePrefs[gameId] = {};
+  state.togglePrefs[gameId][key] = value;
+  saveState();
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+let state = loadState();
+
+// Simulierter Geräte-/Kaufstatus (nicht dauerhaft gespeichert, nur für die Demo)
+let sim = { online: true, purchased: false };
+
+/* ============================================================
+   SPIELE-KATALOG — hier künftig weitere Spiele eintragen.
+   Jede Kachel auf dem Startbildschirm entsteht automatisch
+   aus dieser Liste. "addedOrder" bestimmt, welches verfügbare
+   Spiel aktuell als "neu" markiert wird (immer nur das mit dem
+   höchsten Wert) — beim Hinzufügen eines weiteren Spiels einfach
+   eine höhere Zahl vergeben, das "neu"-Icon wandert automatisch.
+   ============================================================ */
+const GAMES = [
+  { id:'sudoku', name:'Sudoku', icon:'🔢', available:true, addedOrder:1 },
+  { id:'hashi', name:'Hashi', icon:'🌉', available:true, addedOrder:2 },
+  { id:'minesweeper', name:'Minesweeper', icon:'💣', available:true, addedOrder:3 },
+  { id:'kakuro', name:'Kakuro', icon:'🧮', available:true, addedOrder:5 },
+  { id:'futoshiki', name:'Futoshiki', icon:'⚖️', available:true, addedOrder:6 },
+  { id:'killer-sudoku', name:'Killer Sudoku', icon:'🔪', available:true, addedOrder:7 },
+  { id:'thermo-sudoku', name:'Thermo Sudoku', icon:'🌡️', available:true, addedOrder:9 },
+  { id:'memory', name:'Memory', icon:'🧠', available:false, addedOrder:8 },
+];
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+const screens = {
+  profile: document.getElementById('screen-profile'),
+  home: document.getElementById('screen-home'),
+  levels: document.getElementById('screen-levels'),
+  game: document.getElementById('screen-game'), // wird von Sudoku UND Killer Sudoku genutzt
+  hashi: document.getElementById('screen-hashi'),
+  minesweeper: document.getElementById('screen-minesweeper'),
+  futoshiki: document.getElementById('screen-futoshiki'),
+  kakuro: document.getElementById('screen-kakuro'),
+};
+function showScreen(name){
+  Object.values(screens).forEach(s => s.classList.add('hidden'));
+  screens[name].classList.remove('hidden');
+  updateAdBanner();
+}
+
+/* ============================================================
+   PROFIL
+   ============================================================ */
+document.getElementById('btn-create-profile').addEventListener('click', () => {
+  const val = document.getElementById('profile-name-input').value.trim();
+  if(!val) return;
+  state.profileName = val;
+  saveState();
+  enterHome();
+});
+
+function enterHome(){
+  document.getElementById('home-username').textContent = state.profileName;
+  renderHomeContent();
+  showScreen('home');
+}
+
+/* ============================================================
+   STARTBILDSCHIRM / SPIELESAMMLUNG
+   ============================================================ */
+function getStats(gameId){
+  return state.stats[gameId] || { played:0, won:0 };
+}
+function bumpStat(gameId, key){
+  if(!state.stats[gameId]) state.stats[gameId] = { played:0, won:0 };
+  state.stats[gameId][key]++;
+  saveState();
+}
+
+/* ============================================================
+   TIPP-SYSTEM: max. 3 Tipps je Spiel (nicht je Level, sondern je
+   Spiel-Kategorie wie 'sudoku' oder 'hashi') und Tag. Der Zähler
+   setzt sich beim ersten Tipp eines neuen Kalendertags automatisch
+   zurück (lokales Gerätedatum).
+   ============================================================ */
+// Reguläre Tipp-Begrenzung: 3 je Spiel-Kategorie und Kalendertag.
+const MAX_HINTS_PER_DAY = 3;
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function getHintsRemaining(gameId){
+  if(MAX_HINTS_PER_DAY === Infinity) return Infinity;
+  const rec = state.hints[gameId];
+  if(!rec || rec.date !== todayKey()) return MAX_HINTS_PER_DAY;
+  return Math.max(0, MAX_HINTS_PER_DAY - rec.used);
+}
+function consumeHint(gameId){
+  const today = todayKey();
+  if(!state.hints[gameId] || state.hints[gameId].date !== today){
+    state.hints[gameId] = { date: today, used: 0 };
+  }
+  if(MAX_HINTS_PER_DAY !== Infinity && state.hints[gameId].used >= MAX_HINTS_PER_DAY) return false;
+  state.hints[gameId].used++;
+  saveState();
+  return true;
+}
+function refreshHintButton(btnId, spanId, gameId){
+  const remaining = getHintsRemaining(gameId);
+  const btn = document.getElementById(btnId);
+  const span = document.getElementById(spanId);
+  if(span) span.textContent = remaining === Infinity ? '∞' : remaining;
+  if(btn) btn.disabled = remaining <= 0;
+}
+function resetRevealLink(id){
+  const el = document.getElementById(id);
+  if(el){ el.textContent = 'Lösung anzeigen (zählt nicht als gelöst)'; el.disabled = false; }
+}
+
+/* ============================================================
+   ALLGEMEINER RÄTSEL-TIMER — läuft ab dem Start eines Rätsels bei
+   Sudoku/Killer Sudoku, Hashi, Futoshiki und Kakuro. Minesweeper hat
+   bewusst weiterhin seinen eigenen, unabhängigen Timer (mine-timer).
+   Erwartet ein Zustandsobjekt mit den Feldern startTime/timerInterval,
+   das schon existiert (game/hashi/futo/kakuro) — es wird nur ergänzt.
+   ============================================================ */
+// Zeigt die Schwierigkeit als Sterne statt als Text: gewählte Stufe als
+// gefüllte Sterne, Rest bis zum Maximum als Umriss-Sterne (z.B. Stufe 2 von
+// 5 -> "★★☆☆☆").
+function starsFor(id, max = 5){
+  return '★'.repeat(id) + '☆'.repeat(Math.max(0, max - id));
+}
+function formatPuzzleTimer(totalSeconds){
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+function startPuzzleTimer(stateObj, displayId){
+  stateObj.startTime = Date.now();
+  const el = document.getElementById(displayId);
+  if(el) el.textContent = '00:00';
+  stateObj.timerInterval = setInterval(() => {
+    stateObj.elapsedSeconds = Math.floor((Date.now() - stateObj.startTime) / 1000);
+    if(el) el.textContent = formatPuzzleTimer(stateObj.elapsedSeconds);
+  }, 1000);
+}
+function stopPuzzleTimer(stateObj){
+  if(stateObj && stateObj.timerInterval){
+    clearInterval(stateObj.timerInterval);
+    stateObj.timerInterval = null;
+  }
+}
+
+// Ermittelt die ID des aktuell "neuesten" verfügbaren Spiels (höchster
+// addedOrder-Wert). Nur DIESES eine Spiel trägt das "neu"-Icon — sobald ein
+// weiteres Spiel mit höherem addedOrder hinzukommt, wandert das Icon
+// automatisch dorthin.
+function getNewestAvailableId(){
+  const avail = GAMES.filter(g => g.available);
+  if(!avail.length) return null;
+  return avail.reduce((best, g) => (!best || g.addedOrder > best.addedOrder) ? g : best, null).id;
+}
+
+// Sortierreihenfolge für verfügbare Spiele:
+// a) Favoriten zuerst, b) danach das neueste Spiel (falls nicht bereits
+// Favorit), c) danach der Rest. Innerhalb jeder Gruppe alphabetisch.
+function getSortedAvailableGames(){
+  const avail = GAMES.filter(g => g.available);
+  const newestId = getNewestAvailableId();
+  const byName = (a,b) => a.name.localeCompare(b.name, 'de');
+  const favs = avail.filter(g => state.favorites.includes(g.id)).sort(byName);
+  const rest = avail.filter(g => !state.favorites.includes(g.id));
+  const newest = rest.filter(g => g.id === newestId);
+  const others = rest.filter(g => g.id !== newestId).sort(byName);
+  return [...favs, ...newest, ...others];
+}
+function getOrderedGames(){
+  const soon = GAMES.filter(g => !g.available);
+  return [...getSortedAvailableGames(), ...soon];
+}
+
+function toggleFavorite(gameId){
+  const idx = state.favorites.indexOf(gameId);
+  if(idx >= 0) state.favorites.splice(idx, 1);
+  else state.favorites.push(gameId);
+  saveState();
+  renderHomeContent();
+}
+
+/* ---------- Ansichtsauswahl: Liste oder 3x3-Raster ---------- */
+let iconGridPage = 0;
+
+function setViewMode(mode){
+  state.viewMode = mode;
+  saveState();
+  renderHomeContent();
+}
+
+function renderHomeContent(){
+  const isGrid = state.viewMode === 'grid';
+  document.getElementById('game-grid').classList.toggle('hidden', isGrid);
+  document.getElementById('game-icongrid').classList.toggle('hidden', !isGrid);
+  document.getElementById('btn-view-list').classList.toggle('active', !isGrid);
+  document.getElementById('btn-view-grid').classList.toggle('active', isGrid);
+  if(isGrid) renderGameIconGrid();
+  else renderGameListView();
+}
+
+function renderGameListView(){
+  const grid = document.getElementById('game-grid');
+  grid.innerHTML = '';
+  const newestId = getNewestAvailableId();
+  getOrderedGames().forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'game-card';
+
+    if(!g.available){
+      card.classList.add('soon');
+      card.innerHTML = `
+        <div class="icon">${g.icon}</div>
+        <div class="info">
+          <h3>${g.name} <span class="badge-soon">bald</span></h3>
+          <div class="stats">In Entwicklung</div>
+        </div>`;
+      grid.appendChild(card);
+      return;
+    }
+
+    card.classList.add('favable');
+    // Sperrlogik: Gratis + offline + nicht das zuletzt geöffnete Spiel -> gesperrt
+    const locked = !sim.purchased && !sim.online && state.lastOpenedGame !== g.id;
+    if(locked) card.classList.add('locked');
+
+    const isFav = state.favorites.includes(g.id);
+    const st = getStats(g.id);
+    card.innerHTML = `
+      <div class="icon">${g.icon}</div>
+      <div class="info">
+        <h3>${g.name}${g.id === newestId ? ' <span class="badge-new">neu</span>' : ''}</h3>
+        <div class="stats">
+          <span>🎮 Gespielt: ${st.played}</span>
+          <span>🏆 Gewonnen: ${st.won}</span>
+        </div>
+      </div>
+      <button class="fav-btn ${isFav ? 'active' : ''}" aria-label="Favorit">${isFav ? '★' : '☆'}</button>`;
+    if(!locked){
+      card.addEventListener('click', () => openGame(g.id));
+    }
+    card.querySelector('.fav-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFavorite(g.id);
+    });
+    grid.appendChild(card);
+  });
+}
+
+function renderGameIconGrid(){
+  const page = document.getElementById('icongrid-page');
+  const dotsWrap = document.getElementById('icongrid-dots');
+  const nav = document.getElementById('icongrid-nav');
+  page.innerHTML = '';
+  dotsWrap.innerHTML = '';
+
+  const newestId = getNewestAvailableId();
+  const all = getOrderedGames();
+  const perPage = 9; // 3x3 wie bei einem Handy-Startbildschirm
+  const totalPages = Math.max(1, Math.ceil(all.length / perPage));
+  if(iconGridPage >= totalPages) iconGridPage = totalPages - 1;
+  const pageItems = all.slice(iconGridPage * perPage, iconGridPage * perPage + perPage);
+
+  pageItems.forEach(g => {
+    const tile = document.createElement('div');
+    tile.className = 'icongrid-tile';
+    if(!g.available) tile.classList.add('soon');
+    const locked = g.available && !sim.purchased && !sim.online && state.lastOpenedGame !== g.id;
+    if(locked) tile.classList.add('locked');
+    const isFav = g.available && state.favorites.includes(g.id);
+
+    tile.innerHTML = `
+      ${g.available && g.id === newestId ? '<span class="icongrid-badge-new">neu</span>' : ''}
+      <div class="icon">${g.icon}</div>
+      <div class="label">${g.name}</div>
+      ${g.available ? `<button class="icongrid-fav ${isFav ? 'active' : ''}" aria-label="Favorit">${isFav ? '★' : '☆'}</button>` : ''}
+    `;
+
+    if(g.available && !locked){
+      tile.addEventListener('click', (e) => {
+        if(e.target.closest('.icongrid-fav')) return;
+        openGame(g.id);
+      });
+    }
+    const favBtn = tile.querySelector('.icongrid-fav');
+    if(favBtn){
+      favBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFavorite(g.id);
+      });
+    }
+    page.appendChild(tile);
+  });
+
+  for(let p = 0; p < totalPages; p++){
+    const dot = document.createElement('span');
+    if(p === iconGridPage) dot.classList.add('active');
+    dotsWrap.appendChild(dot);
+  }
+  nav.classList.toggle('single-page', totalPages <= 1);
+  document.getElementById('btn-icongrid-prev').disabled = iconGridPage === 0;
+  document.getElementById('btn-icongrid-next').disabled = iconGridPage >= totalPages - 1;
+}
+
+document.getElementById('btn-view-list').addEventListener('click', () => setViewMode('list'));
+document.getElementById('btn-view-grid').addEventListener('click', () => setViewMode('grid'));
+document.getElementById('btn-icongrid-prev').addEventListener('click', () => {
+  iconGridPage = Math.max(0, iconGridPage - 1);
+  renderGameIconGrid();
+});
+document.getElementById('btn-icongrid-next').addEventListener('click', () => {
+  iconGridPage++;
+  renderGameIconGrid();
+});
+
+function openGame(gameId){
+  state.lastOpenedGame = gameId;
+  saveState();
+  if(gameId === 'sudoku'){
+    activeGameId = 'sudoku';
+    renderLevelsList();
+    showScreen('levels');
+  } else if(gameId === 'hashi'){
+    activeGameId = 'hashi';
+    renderHashiLevelsList();
+    showScreen('levels');
+  } else if(gameId === 'minesweeper'){
+    activeGameId = 'minesweeper';
+    renderMineLevelsList();
+    showScreen('levels');
+  } else if(gameId === 'killer-sudoku'){
+    activeGameId = 'killer-sudoku';
+    renderKillerLevelsList();
+    showScreen('levels');
+  } else if(gameId === 'kakuro'){
+    activeGameId = 'kakuro';
+    renderKakuroLevelsList();
+    showScreen('levels');
+  } else if(gameId === 'futoshiki'){
+    activeGameId = 'futoshiki';
+    renderFutoshikiLevelsList();
+    showScreen('levels');
+  } else if(gameId === 'thermo-sudoku'){
+    activeGameId = 'thermo-sudoku';
+    renderThermoLevelsList();
+    showScreen('levels');
+  }
+}
+let activeGameId = 'sudoku'; // merkt sich, welches Spiel gerade die Levelauswahl/den Zurück-Pfeil benutzt
+
+document.getElementById('btn-levels-back').addEventListener('click', () => {
+  renderHomeContent();
+  showScreen('home');
+});
+document.getElementById('btn-game-back').addEventListener('click', () => {
+  abandonSudokuIfNeeded();
+  if(activeGameId === 'killer-sudoku') renderKillerLevelsList();
+  else if(activeGameId === 'thermo-sudoku') renderThermoLevelsList();
+  else renderLevelsList();
+  showScreen('levels');
+});
+document.getElementById('btn-hashi-back').addEventListener('click', () => {
+  abandonHashiIfNeeded();
+  renderHashiLevelsList();
+  showScreen('levels');
+});
+document.getElementById('btn-mine-back').addEventListener('click', () => {
+  abandonMinesweeperIfNeeded();
+  stopMineTimer();
+  renderMineLevelsList();
+  showScreen('levels');
+});
+document.getElementById('btn-futo-back').addEventListener('click', () => {
+  abandonFutoshikiIfNeeded();
+  renderFutoshikiLevelsList();
+  showScreen('levels');
+});
+document.getElementById('btn-kakuro-back').addEventListener('click', () => {
+  abandonKakuroIfNeeded();
+  renderKakuroLevelsList();
+  showScreen('levels');
+});
+
+/* ============================================================
+   DEV-PANEL: simuliert Online/Offline & Kaufstatus
+   ============================================================ */
+const devPanel = document.getElementById('dev-panel');
+const langPanel = document.getElementById('lang-panel');
+document.getElementById('btn-dev-panel').addEventListener('click', () => {
+  langPanel.classList.add('hidden');
+  devPanel.classList.toggle('hidden');
+});
+document.getElementById('toggle-online').addEventListener('change', e => {
+  sim.online = e.target.checked;
+  renderHomeContent();
+  updateAdBanner();
+});
+document.getElementById('toggle-purchased').addEventListener('change', e => {
+  sim.purchased = e.target.checked;
+  renderHomeContent();
+  updateAdBanner();
+});
+
+/* ============================================================
+   SPRACHPANEL — Platzhalter für eine spätere echte Sprachauswahl.
+   Aktuell nur Deutsch wählbar; die Struktur (state.language) ist
+   bereits vorhanden, damit später einfach weitere Sprachen und
+   die zugehörigen Texte angebunden werden können.
+   ============================================================ */
+document.getElementById('btn-lang-panel').addEventListener('click', () => {
+  devPanel.classList.add('hidden');
+  langPanel.classList.toggle('hidden');
+});
+document.getElementById('lang-de').addEventListener('change', e => {
+  if(e.target.checked){ state.language = 'de'; saveState(); }
+});
+
+/* ============================================================
+   WERBEBANNER
+   Regeneriert den Inhalt alle 60 Sekunden (Platzhalter-Rotation).
+   Nur sichtbar in der Gratisversion.
+   ============================================================ */
+const AD_SAMPLES = [
+  '🍩 Bäckerei um die Ecke — jetzt Angebote entdecken',
+  '🚗 Fahrservice XY — deine erste Fahrt gratis',
+  '🎧 Musik-Streaming — 30 Tage kostenlos testen',
+  '📚 Lern-App — neue Sprache in 15 Min/Tag',
+];
+let adIndex = 0;
+function rotateAd(){
+  adIndex = (adIndex + 1) % AD_SAMPLES.length;
+  document.getElementById('ad-content').innerHTML = AD_SAMPLES[adIndex];
+}
+setInterval(rotateAd, 60000); // alle 1 Minute neu generieren
+
+function updateAdBanner(){
+  const banner = document.getElementById('ad-banner');
+  const showAd = !sim.purchased;
+  banner.classList.toggle('hidden', !showAd);
+  document.getElementById('view-toggle').classList.toggle('lifted', showAd);
+}
+
+/* ============================================================
+   SUDOKU: GENERIERUNG
+   ============================================================ */
+const LEVELS = [
+  { id:1, label:'Sehr leicht', desc:'Ideal für Einsteiger, kleine Rätsel', clues:46 },
+  { id:2, label:'Leicht',      desc:'Locker herausfordernd',  clues:40 },
+  { id:3, label:'Mittel',      desc:'Mittlere Schwierigkeit', clues:34 },
+  { id:4, label:'Schwer',      desc:'Für Geübte',             clues:28 },
+  { id:5, label:'Experte',     desc:'Echte Kopfnuss',         clues:23 },
+];
+
+function renderLevelsList(){
+  document.getElementById('levels-title').textContent = 'Sudoku';
+  document.getElementById('mine-custom-panel').classList.add('hidden');
+  const list = document.getElementById('levels-list');
+  list.innerHTML = '';
+  LEVELS.forEach(lv => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    const dots = Array.from({length:5}, (_,i) =>
+      `<span class="${i < lv.id ? 'on' : ''}"></span>`).join('');
+    btn.innerHTML = `
+      <div class="dots">${dots}</div>
+      <div class="label"><b>${lv.label}</b><small>${lv.desc}</small></div>
+      <div class="arrow">›</div>`;
+    btn.addEventListener('click', () => startSudoku(lv));
+    list.appendChild(btn);
+  });
+}
+
+/* ============================================================
+   HASHI: LEVELAUSWAHL (gleiche Optik wie Sudoku-Levels)
+   ============================================================ */
+const HASHI_LEVELS = [
+  { id:1, label:'Sehr leicht', desc:'Ideal für Einsteiger, kleine Rätsel', islands:6,  size:7 },
+  { id:2, label:'Leicht',      desc:'Locker herausfordernd', islands:9,  size:8 },
+  { id:3, label:'Mittel',      desc:'Mittlere Schwierigkeit', islands:12, size:9 },
+  { id:4, label:'Schwer',      desc:'Für Geübte', islands:15, size:10 },
+  { id:5, label:'Experte',     desc:'Echte Kopfnuss', islands:19, size:11 },
+];
+
+function renderHashiLevelsList(){
+  document.getElementById('levels-title').textContent = 'Hashi';
+  document.getElementById('mine-custom-panel').classList.add('hidden');
+  const list = document.getElementById('levels-list');
+  list.innerHTML = '';
+  HASHI_LEVELS.forEach(lv => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    const dots = Array.from({length:5}, (_,i) =>
+      `<span class="${i < lv.id ? 'on' : ''}"></span>`).join('');
+    btn.innerHTML = `
+      <div class="dots">${dots}</div>
+      <div class="label"><b>${lv.label}</b><small>${lv.desc}</small></div>
+      <div class="arrow">›</div>`;
+    btn.addEventListener('click', () => startHashi(lv));
+    list.appendChild(btn);
+  });
+}
+
+/* ============================================================
+   MINESWEEPER: LEVELAUSWAHL (gleiche Optik, Emoji statt Punkte)
+   ============================================================ */
+const MINE_DIFFICULTIES = [
+  { id:'beginner',     emoji:'🟢', label:'Anfänger',        desc:'9×9, 10 Minen',   cols:9,  rows:9,  mines:10 },
+  { id:'intermediate', emoji:'🟡', label:'Fortgeschritten', desc:'16×16, 40 Minen', cols:16, rows:16, mines:40 },
+  { id:'expert',       emoji:'🔴', label:'Experte',         desc:'30×16, 99 Minen', cols:30, rows:16, mines:99 },
+  { id:'custom',       emoji:'⚙️', label:'Benutzerdefiniert', desc:'Eigene Werte festlegen', cols:null, rows:null, mines:null },
+];
+
+function renderMineLevelsList(){
+  document.getElementById('levels-title').textContent = 'Minesweeper';
+  const list = document.getElementById('levels-list');
+  list.innerHTML = '';
+  const customPanel = document.getElementById('mine-custom-panel');
+  customPanel.classList.add('hidden');
+  MINE_DIFFICULTIES.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    btn.innerHTML = `
+      <span style="font-size:20px; width:20px; text-align:center;">${d.emoji}</span>
+      <div class="label"><b>${d.label}</b><small>${d.desc}</small></div>
+      <div class="arrow">›</div>`;
+    btn.addEventListener('click', () => {
+      if(d.id === 'custom'){
+        customPanel.classList.remove('hidden');
+      } else {
+        customPanel.classList.add('hidden');
+        startMinesweeper(d.cols, d.rows, d.mines, d.id);
+      }
+    });
+    list.appendChild(btn);
+  });
+}
+
+document.getElementById('btn-mine-custom-start').addEventListener('click', () => {
+  const colsInput = parseInt(document.getElementById('mine-custom-cols').value, 10);
+  const rowsInput = parseInt(document.getElementById('mine-custom-rows').value, 10);
+  const minesInput = parseInt(document.getElementById('mine-custom-mines').value, 10);
+  const cols = Math.min(40, Math.max(5, colsInput || 9));
+  const rows = Math.min(24, Math.max(5, rowsInput || 9));
+  // mindestens 9 sichere Felder für einen fairen ersten Klick freihalten
+  const maxMines = Math.max(1, cols * rows - 9);
+  const mines = Math.min(maxMines, Math.max(1, minesInput || 10));
+  document.getElementById('mine-custom-panel').classList.add('hidden');
+  startMinesweeper(cols, rows, mines, 'custom');
+});
+
+// -- Backtracking-Generator für ein vollständig gültiges 9x9-Gitter --
+function shuffle(arr){
+  for(let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function isSafe(board, row, col, num){
+  for(let x = 0; x < 9; x++){
+    if(board[row][x] === num) return false;
+    if(board[x][col] === num) return false;
+  }
+  const br = row - row % 3, bc = col - col % 3;
+  for(let r = 0; r < 3; r++)
+    for(let c = 0; c < 3; c++)
+      if(board[br+r][bc+c] === num) return false;
+  return true;
+}
+function fillBoard(board, pos = 0){
+  if(pos === 81) return true;
+  const row = Math.floor(pos / 9), col = pos % 9;
+  const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+  for(const n of nums){
+    if(isSafe(board, row, col, n)){
+      board[row][col] = n;
+      if(fillBoard(board, pos + 1)) return true;
+      board[row][col] = 0;
+    }
+  }
+  return false;
+}
+function generateFullBoard(){
+  const board = Array.from({length:9}, () => Array(9).fill(0));
+  fillBoard(board);
+  return board;
+}
+function generatePuzzle(clueCount){
+  const solution = generateFullBoard();
+  const puzzle = solution.map(row => row.slice());
+  const cells = shuffle(Array.from({length:81}, (_,i) => i));
+  const toRemove = 81 - clueCount;
+  for(let i = 0; i < toRemove; i++){
+    const idx = cells[i];
+    puzzle[Math.floor(idx/9)][idx%9] = 0;
+  }
+  return { puzzle, solution };
+}
+
+/* ============================================================
+   SUDOKU: SPIELLOGIK
+   ============================================================ */
+let game = null; // { level, puzzle, solution, values, activeCell }
+
+function startSudoku(level){
+  activeGameId = 'sudoku';
+  stopPuzzleTimer(game); // eventuell noch laufendes Intervall des vorherigen Rätsels beenden
+  const { puzzle, solution } = generatePuzzle(level.clues);
+  const savedHighlight = getTogglePref('sudoku', 'highlight', false);
+  const savedInputMode = getTogglePref('sudoku', 'inputMode', 'popup');
+  game = {
+    statsKey: 'sudoku',
+    level,
+    puzzle,
+    solution,
+    values: puzzle.map(row => row.slice()),
+    cages: null,
+    hasInteracted: false, // wird true, sobald der Spieler eine Zahl einträgt
+    counted: false,       // verhindert Doppelzählung in der Statistik
+    highlightEnabled: savedHighlight,
+    inputMode: savedInputMode,
+    markedValue: null,
+    startTime: null, timerInterval: null, elapsedSeconds: 0,
+  };
+  document.getElementById('game-title').textContent = 'Sudoku';
+  document.getElementById('game-level-chip').textContent = starsFor(level.id);
+  refreshHintButton('btn-game-hint', 'game-hint-count', 'sudoku');
+  resetRevealLink('btn-game-reveal');
+  document.getElementById('cage-style-group').classList.add('hidden'); // kein Käfig bei normalem Sudoku
+  document.getElementById('highlight-toggle-checkbox').checked = savedHighlight;
+  document.getElementById('input-mode-checkbox').checked = (savedInputMode === 'popup');
+  document.getElementById('inline-input').classList.toggle('hidden', savedInputMode === 'popup');
+  refreshInlineMarks();
+  startPuzzleTimer(game, 'game-timer');
+  renderGrid();
+  updateCheckButton();
+  showScreen('game');
+}
+
+// Zählt das aktuelle Rätsel als Fehlversuch in der Statistik, aber NUR wenn
+// der Spieler tatsächlich schon eine Zahl eingetragen hatte. Wird ein Rätsel
+// ungenutzt verworfen (sofort "Neu mischen" oder zurück), zählt das nicht.
+// Gilt für Sudoku UND Killer Sudoku (statsKey unterscheidet die Statistik).
+function abandonSudokuIfNeeded(){
+  if(game && game.hasInteracted && !game.counted){
+    bumpStat(game.statsKey, 'played');
+    game.counted = true;
+  }
+  stopPuzzleTimer(game);
+}
+
+function renderGrid(){
+  const grid = document.getElementById('sudoku-grid');
+  grid.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  // Käfig-Zuordnung je Zelle nachschlagen (nur bei Killer Sudoku gesetzt)
+  const cageIdAt = game.cages ? game.cages.cageId : null;
+  const cageAnchor = new Set(); // "r,c" der jeweils obersten/linkesten Zelle eines Käfigs
+  const cageSumAt = {};
+  const cageColorOf = {}; // cageId -> Linienfarbe (angrenzende Käfige unterscheiden sich immer)
+  const cageBgColorOf = {}; // cageId -> helle Flächenfarbe (Standarddarstellung von Killer Sudoku)
+  if(game.cages){
+    game.cages.cages.forEach(cage => {
+      const sorted = cage.cells.slice().sort((a,b) => a[0]-b[0] || a[1]-b[1]);
+      const [ar,ac] = sorted[0];
+      cageAnchor.add(ar+','+ac);
+      cageSumAt[ar+','+ac] = cage.sum;
+      cageColorOf[cage.id] = cage.color || 'var(--accent-dark)';
+      cageBgColorOf[cage.id] = cage.bgColor || 'var(--accent-bg)';
+    });
+  }
+  for(let r = 0; r < 9; r++){
+    for(let c = 0; c < 9; c++){
+      const val = game.values[r][c];
+      const given = game.puzzle[r][c] !== 0;
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + (given ? 'given' : 'editable');
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      // Vorgabe-Felder unterliegen denselben Farbregeln wie jedes
+      // andere Feld — keine zusätzliche "Vorgabe"-Einfärbung (weder Text-
+      // noch Hintergrundfarbe), nur die Käfigfarbe zählt. Bei Killer Sudoku
+      // (Linien-Stil) bleibt die übliche Vorgabe-Hervorhebung bestehen.
+      if(given && game.cageStyle === 'fill'){
+        cell.style.color = 'var(--ink)';
+      }
+      // Alle Linien (Blocklinien + Käfiglinien) werden als EINE flache Liste
+      // in JS zusammengebaut und über eine einzige CSS-Variable gesetzt.
+      // (Vorher mehrere einzelne Variablen mit ineinander verschachtelten,
+      // kommagetrennten var()-Werten — das wurde von echten Browsern nicht
+      // zuverlässig gerendert, obwohl es syntaktisch gültig aussah. Eine
+      // einzige, in JS fertig zusammengesetzte Liste ist robuster.)
+      const lines = [];
+      const thickR = (c % 3 === 2);
+      const thickB = (r % 3 === 2);
+      // Zellen der Spalte 0 / Zeile 0 zeichnen zusätzlich ihre eigene linke/
+      // obere Rahmenlinie (immer dick, da Teil des äußeren Rahmens). Diese
+      // Zellen übermalen sonst automatisch einen etwaigen Schatten des
+      // Grid-Containers selbst — Kind-Elemente liegen immer über dem
+      // box-shadow ihres Elternelements, daher muss die Zelle das selbst tun.
+      if(c === 0) lines.push('inset 1px 0 0 var(--ink)', 'inset 2px 0 0 #fff', 'inset 3px 0 0 var(--ink)');
+      if(r === 0) lines.push('inset 0 1px 0 var(--ink)', 'inset 0 2px 0 #fff', 'inset 0 3px 0 var(--ink)');
+      if(thickR){
+        lines.push('inset -1px 0 0 var(--ink)', 'inset -2px 0 0 #fff', 'inset -3px 0 0 var(--ink)');
+      } else {
+        lines.push('inset -1px 0 0 var(--ink-faint)');
+      }
+      if(thickB){
+        lines.push('inset 0 -1px 0 var(--ink)', 'inset 0 -2px 0 #fff', 'inset 0 -3px 0 var(--ink)');
+      } else {
+        lines.push('inset 0 -1px 0 var(--ink-faint)');
+      }
+
+      if(cageIdAt){
+        const myId = cageIdAt[r][c];
+        const myColor = cageColorOf[myId] || 'var(--accent-dark)';
+        if(game.cageStyle === 'fill'){
+          // Käfig wird standardmäßig durch eine eingefärbte Fläche kenntlich
+          // gemacht statt durch eine Trennlinie — angrenzende Käfige haben
+          // durch die Graph-Färbung ohnehin immer unterschiedliche Farben,
+          // die Grenze ist also am Farbwechsel selbst erkennbar. Die Farbe
+          // wird zusätzlich im dataset gespeichert, damit sie sich nach
+          // einer roten "falsch"-Markierung wiederherstellen lässt.
+          const bg = cageBgColorOf[myId] || 'var(--accent-bg)';
+          cell.style.backgroundColor = bg;
+          cell.dataset.cageBg = bg;
+        } else {
+          if(c > 0 && cageIdAt[r][c-1] !== myId) lines.push(`inset 1.5px 0 0 ${myColor}`);
+          if(r > 0 && cageIdAt[r-1][c] !== myId) lines.push(`inset 0 1.5px 0 0 ${myColor}`);
+          // Käfiglinie IMMER zusätzlich zur 3x3-Blocklinie zeichnen, auch wenn
+          // beide an derselben Stelle liegen — mehrere box-shadow-Ebenen können
+          // gleichzeitig dargestellt werden, daher gab es hier keinen Grund zur
+          // Unterdrückung (BUGFIX: vorher verschwanden Käfiggrenzen komplett,
+          // sobald ein Käfig zufällig über eine 3x3-Blockgrenze hinausragte).
+          if(c < 8 && cageIdAt[r][c+1] !== myId){
+            lines.push(`inset -1.5px 0 0 ${myColor}`);
+          }
+          if(r < 8 && cageIdAt[r+1][c] !== myId){
+            lines.push(`inset 0 -1.5px 0 ${myColor}`);
+          }
+        }
+        const sum = cageSumAt[r+','+c];
+        if(sum !== undefined){
+          const label = document.createElement('span');
+          label.className = 'cage-sum';
+          label.textContent = sum;
+          label.style.color = myColor;
+          cell.appendChild(label);
+        }
+      }
+      cell.style.setProperty('--lines', lines.join(', '));
+
+      if(val !== 0){
+        const numSpan = document.createElement('span');
+        numSpan.className = 'cell-value';
+        numSpan.textContent = val;
+        cell.appendChild(numSpan);
+      }
+
+      if(!given){
+        cell.addEventListener('click', () => handleCellTap(r, c, cell));
+      }
+      frag.appendChild(cell);
+    }
+  }
+  grid.appendChild(frag);
+  renderThermoOverlay();
+}
+
+/* ============================================================
+   KILLER SUDOKU
+   Nutzt exakt denselben Screen, dasselbe Zifferblock-Popup und
+   dieselbe Prüf-Logik wie klassisches Sudoku — nur ohne vorgegebene
+   Zahlen, dafür mit Käfigen (Gruppen benachbarter Felder mit
+   Summen-Vorgabe, keine Ziffer darf sich innerhalb eines Käfigs
+   wiederholen).
+   ============================================================ */
+const KILLER_LEVELS = [
+  { id:1, label:'Sehr leicht', desc:'Kleine Käfige, 6 Vorgaben', minCage:2, maxCage:3, givens:6 },
+  { id:2, label:'Leicht',      desc:'Käfige bis 3 Felder, 4 Vorgaben', minCage:2, maxCage:3, givens:4 },
+  { id:3, label:'Mittel',      desc:'Käfige bis 4 Felder, 1 Vorgabe', minCage:2, maxCage:4, givens:1 },
+  { id:4, label:'Schwer',      desc:'Größere Käfige, keine Vorgaben', minCage:3, maxCage:4, givens:0 },
+  { id:5, label:'Experte',     desc:'Käfige bis 5 Felder, keine Vorgaben', minCage:2, maxCage:5, givens:0 },
+];
+
+function renderKillerLevelsList(){
+  document.getElementById('levels-title').textContent = 'Killer Sudoku';
+  document.getElementById('mine-custom-panel').classList.add('hidden');
+  const list = document.getElementById('levels-list');
+  list.innerHTML = '';
+  KILLER_LEVELS.forEach(lv => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    const dots = Array.from({length:5}, (_,i) =>
+      `<span class="${i < lv.id ? 'on' : ''}"></span>`).join('');
+    btn.innerHTML = `
+      <div class="dots">${dots}</div>
+      <div class="label"><b>${lv.label}</b><small>${lv.desc}</small></div>
+      <div class="arrow">›</div>`;
+    btn.addEventListener('click', () => startKillerSudoku(lv));
+    list.appendChild(btn);
+  });
+}
+
+// Verteilt die Zellen eines vollständigen Lösungsgitters auf Käfige.
+// Wachstum in Lese-Reihenfolge hält die Form kompakt; übrig gebliebene
+// Einzelzellen werden anschließend, wenn möglich, mit einem
+// benachbarten Käfig verschmolzen (weniger "verschenkte" Einzelfelder).
+function generateKillerCages(solution, minCage, maxCage){
+  const size = 9;
+  const cageId = Array.from({length:size}, () => Array(size).fill(-1));
+  const cages = [];
+
+  function growFrom(r0, c0){
+    if(cageId[r0][c0] !== -1) return;
+    const id = cages.length;
+    const cells = [[r0,c0]];
+    cageId[r0][c0] = id;
+    const usedDigits = new Set([solution[r0][c0]]);
+    const targetSize = minCage + Math.floor(Math.random() * (maxCage - minCage + 1));
+    let guard = 0;
+    while(cells.length < targetSize && guard < 30){
+      guard++;
+      const candidates = [];
+      for(const [r,c] of cells){
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc]) => {
+          const rr = r+dr, cc = c+dc;
+          if(rr>=0 && rr<size && cc>=0 && cc<size && cageId[rr][cc]===-1){
+            const digit = solution[rr][cc];
+            if(!usedDigits.has(digit)) candidates.push([rr,cc]);
+          }
+        });
+      }
+      if(!candidates.length) break;
+      const [nr,nc] = candidates[Math.floor(Math.random()*candidates.length)];
+      cells.push([nr,nc]);
+      cageId[nr][nc] = id;
+      usedDigits.add(solution[nr][nc]);
+    }
+    const sum = cells.reduce((s,[r,c]) => s + solution[r][c], 0);
+    cages.push({ id, cells, sum });
+  }
+
+  for(let r = 0; r < size; r++) for(let c = 0; c < size; c++) growFrom(r, c);
+
+  let merged = true;
+  while(merged){
+    merged = false;
+    for(const cage of cages){
+      if(cage.cells.length !== 1) continue;
+      const [r,c] = cage.cells[0];
+      const neighbors = [[1,0],[-1,0],[0,1],[0,-1]]
+        .map(([dr,dc]) => [r+dr, c+dc])
+        .filter(([rr,cc]) => rr>=0 && rr<size && cc>=0 && cc<size);
+      for(const [rr,cc] of neighbors){
+        const otherId = cageId[rr][cc];
+        if(otherId === cage.id) continue;
+        const other = cages.find(cg => cg.id === otherId);
+        if(!other || other.cells.length >= maxCage) continue;
+        const otherDigits = new Set(other.cells.map(([or,oc]) => solution[or][oc]));
+        if(otherDigits.has(solution[r][c])) continue;
+        other.cells.push([r,c]);
+        other.sum += solution[r][c];
+        cageId[r][c] = other.id;
+        cage.cells = [];
+        merged = true;
+        break;
+      }
+      if(merged) break;
+    }
+    for(let i = cages.length-1; i >= 0; i--){ if(cages[i].cells.length === 0) cages.splice(i,1); }
+  }
+
+  assignCageColors(cages, cageId, size);
+  return { cageId, cages };
+}
+
+// Weist jedem Käfig eine Linienfarbe zu, sodass zwei ANGRENZENDE Käfige nie
+// dieselbe Farbe bekommen (Greedy-Graph-Färbung) — macht benachbarte Käfige
+// auf einen Blick unterscheidbar statt einheitlich einfarbig.
+const CAGE_COLOR_PALETTE = [
+  'var(--accent-dark)', 'var(--primary-dark)', 'var(--lilac-dark)',
+  'var(--danger-ink)', 'var(--success)', '#4A6FA5',
+];
+// Passende helle Variante je Farbe (gleicher Index) — für die Flächen-Darstellung, wo die
+// Zellfläche statt einer Linie eingefärbt wird.
+const CAGE_BG_PALETTE = [
+  'var(--accent-bg)', 'var(--primary-bg)', 'var(--lilac-bg)',
+  'var(--danger-bg)', 'var(--success-bg)', '#E4EBF5',
+];
+function assignCageColors(cages, cageId, size){
+  const neighborIds = new Map();
+  cages.forEach(cage => neighborIds.set(cage.id, new Set()));
+  for(let r = 0; r < size; r++){
+    for(let c = 0; c < size; c++){
+      const id = cageId[r][c];
+      if(c+1 < size && cageId[r][c+1] !== id){
+        neighborIds.get(id).add(cageId[r][c+1]);
+        neighborIds.get(cageId[r][c+1]).add(id);
+      }
+      if(r+1 < size && cageId[r+1][c] !== id){
+        neighborIds.get(id).add(cageId[r+1][c]);
+        neighborIds.get(cageId[r+1][c]).add(id);
+      }
+    }
+  }
+  const colorIndexOf = {};
+  // Käfige mit den meisten Nachbarn zuerst einfärben — liefert bei Greedy-
+  // Färbung zuverlässiger echte Unterscheidbarkeit als eine feste Reihenfolge.
+  const order = cages.slice().sort((a,b) => neighborIds.get(b.id).size - neighborIds.get(a.id).size);
+  order.forEach(cage => {
+    const used = new Set();
+    neighborIds.get(cage.id).forEach(nId => {
+      if(colorIndexOf[nId] !== undefined) used.add(colorIndexOf[nId]);
+    });
+    let chosen = 0;
+    while(used.has(chosen) && chosen < CAGE_COLOR_PALETTE.length - 1) chosen++;
+    colorIndexOf[cage.id] = chosen;
+  });
+  cages.forEach(cage => {
+    cage.color = CAGE_COLOR_PALETTE[colorIndexOf[cage.id]];
+    cage.bgColor = CAGE_BG_PALETTE[colorIndexOf[cage.id]];
+  });
+}
+
+/* ============================================================
+   KILLER SUDOKU
+   Käfige werden standardmäßig als eingefärbte Fläche dargestellt
+   (cageStyle:'fill') — über den Regler neben den Feld-Tipps lässt
+   sich jederzeit, auch mitten im laufenden Rätsel, auf klassische
+   farbige Trennlinien umschalten (cageStyle:'lines').
+   ============================================================ */
+function startKillerSudoku(level){
+  activeGameId = 'killer-sudoku';
+  stopPuzzleTimer(game); // eventuell noch laufendes Intervall des vorherigen Rätsels beenden
+  const solution = generateFullBoard();
+  const puzzle = Array.from({length:9}, () => Array(9).fill(0));
+  // Ein paar zufällige Vorgaben je nach Schwierigkeit einstreuen (Experte: keine).
+  const cellIdx = shuffle(Array.from({length:81}, (_,i) => i));
+  for(let i = 0; i < (level.givens || 0); i++){
+    const idx = cellIdx[i];
+    const r = Math.floor(idx / 9), c = idx % 9;
+    puzzle[r][c] = solution[r][c];
+  }
+  const cages = generateKillerCages(solution, level.minCage, level.maxCage);
+  const savedCageStyle = getTogglePref('killer-sudoku', 'cageStyle', 'fill');
+  const savedHighlight = getTogglePref('killer-sudoku', 'highlight', false);
+  const savedInputMode = getTogglePref('killer-sudoku', 'inputMode', 'popup');
+  game = {
+    statsKey: 'killer-sudoku',
+    level,
+    puzzle,
+    solution,
+    values: puzzle.map(row => row.slice()),
+    cages,
+    cageStyle: savedCageStyle, // zuletzt vom Anwender gewählte Darstellung, bleibt über Sitzungen erhalten
+    hasInteracted: false,
+    counted: false,
+    highlightEnabled: savedHighlight,
+    inputMode: savedInputMode,
+    markedValue: null,
+    startTime: null, timerInterval: null, elapsedSeconds: 0,
+  };
+  document.getElementById('game-title').textContent = 'Killer Sudoku';
+  document.getElementById('game-level-chip').textContent = starsFor(level.id);
+  refreshHintButton('btn-game-hint', 'game-hint-count', 'killer-sudoku');
+  resetRevealLink('btn-game-reveal');
+  document.getElementById('cage-style-group').classList.remove('hidden');
+  document.getElementById('cage-style-checkbox').checked = (savedCageStyle === 'fill');
+  document.getElementById('highlight-toggle-checkbox').checked = savedHighlight;
+  document.getElementById('input-mode-checkbox').checked = (savedInputMode === 'popup');
+  document.getElementById('inline-input').classList.toggle('hidden', savedInputMode === 'popup');
+  refreshInlineMarks();
+  startPuzzleTimer(game, 'game-timer');
+  renderGrid();
+  updateCheckButton();
+  showScreen('game');
+}
+
+/* ============================================================
+   THERMO SUDOKU
+   Normale Sudoku-Regeln plus Thermometer: entlang jedes Thermometers
+   (Kolben = rundes Ende, Spitze = anderes Ende) müssen die Zahlen
+   vom Kolben aus streng aufsteigend sein — nicht zwingend
+   aufeinanderfolgend (2-5-7 ist z.B. gültig), nur jede folgende
+   Zahl muss größer sein als die vorherige.
+
+   Die Schwierigkeit entsteht hier NICHT nur über die Anzahl der
+   Vorgaben, sondern vor allem über: Anzahl & Länge der Thermometer,
+   und ob/wie oft sich Thermometer eine gemeinsame Zelle teilen
+   ("Kreuzung" — echte Überschneidung, nicht nur Berührung). Je
+   höher die Stufe, desto mehr/längere Thermometer, desto mehr
+   erlaubte Kreuzungen, desto weniger Vorgaben.
+   ============================================================ */
+const THERMO_LEVELS = [
+  { id:1, label:'Sehr leicht', desc:'3–5 Thermometer, keine Kreuzungen, 35–40 Vorgaben',
+    countMin:3,  countMax:5,  minLen:3, maxLen:5, givensMin:35, givensMax:40,
+    allowTouching:false, allowCrossings:false, maxCrossPerThermo:0, crossChance:0 },
+  { id:2, label:'Leicht', desc:'5–7 Thermometer, einzelne Kreuzungen, 28–35 Vorgaben',
+    countMin:5,  countMax:7,  minLen:3, maxLen:6, givensMin:28, givensMax:35,
+    allowTouching:true,  allowCrossings:true,  maxCrossPerThermo:1, crossChance:0.15 },
+  { id:3, label:'Mittel', desc:'7–10 Thermometer, mehrere Kreuzungen, 22–28 Vorgaben',
+    countMin:7,  countMax:10, minLen:3, maxLen:6, givensMin:22, givensMax:28,
+    allowTouching:true,  allowCrossings:true,  maxCrossPerThermo:2, crossChance:0.25 },
+  { id:4, label:'Schwer', desc:'10–13 Thermometer, lange Ketten (bis 8 Felder), 18–22 Vorgaben',
+    countMin:10, countMax:13, minLen:4, maxLen:8, givensMin:18, givensMax:22,
+    allowTouching:true,  allowCrossings:true,  maxCrossPerThermo:2, crossChance:0.30 },
+  { id:5, label:'Experte', desc:'Viele Thermometer, mehrfache Kreuzungen, 15–20 Vorgaben',
+    countMin:12, countMax:16, minLen:3, maxLen:8, givensMin:15, givensMax:20,
+    allowTouching:true,  allowCrossings:true,  maxCrossPerThermo:3, crossChance:0.40 },
+];
+
+function renderThermoLevelsList(){
+  document.getElementById('levels-title').textContent = 'Thermo Sudoku';
+  document.getElementById('mine-custom-panel').classList.add('hidden');
+  const list = document.getElementById('levels-list');
+  list.innerHTML = '';
+  THERMO_LEVELS.forEach(lv => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    const dots = Array.from({length:5}, (_,i) => `<span class="${i < lv.id ? 'on' : ''}"></span>`).join('');
+    btn.innerHTML = `
+      <div class="dots">${dots}</div>
+      <div class="label"><b>${lv.label}</b><small>${lv.desc}</small></div>
+      <div class="arrow">›</div>`;
+    btn.addEventListener('click', () => startThermoSudoku(lv));
+    list.appendChild(btn);
+  });
+}
+
+// Prüft, ob eine Zelle (auch diagonal) direkt an eine bereits belegte
+// Zelle eines ANDEREN Thermometers angrenzt, OHNE dass es eine gewollte
+// Kreuzung ist (myPathSet = eigene, bereits belegte Zellen — die zählen
+// nicht als "fremd"). Nur relevant, wenn Berühren generell nicht erlaubt ist.
+function thermoHasForeignNeighbor(r, c, cellUse, myPathSet, size){
+  for(let dr = -1; dr <= 1; dr++){
+    for(let dc = -1; dc <= 1; dc++){
+      if(dr === 0 && dc === 0) continue;
+      const nr = r+dr, nc = c+dc;
+      if(nr < 0 || nr >= size || nc < 0 || nc >= size) continue;
+      const key = nr + ',' + nc;
+      if(cellUse[key] && !myPathSet.has(key)) return true;
+    }
+  }
+  return false;
+}
+// Wächst Thermometer als zufälligen Pfad benachbarter Zellen, wobei die
+// Lösungswerte entlang des Pfads immer strikt ansteigen müssen — dadurch
+// ist die Lösung garantiert mit den Thermometern konsistent. Je nach
+// Schwierigkeit dürfen sich Thermometer eine Zelle teilen (echte
+// Kreuzung, max. 2 Thermometer je Zelle) — das ist eigenständig vom
+// bloßen "Berühren" (direkt benachbart, aber keine gemeinsame Zelle).
+// Prüft, ob eine neue diagonale Verbindung (r1,c1)-(r2,c2) genau die
+// GEGENLÄUFIGE Diagonale eines 2x2-Blocks wäre, den bereits ein anderes
+// Thermometer diagonal durchquert — das wäre eine "unsichtbare" X-Kreuzung
+// ohne gemeinsame Zelle (schlechter als eine normale Kreuzung, da nicht als
+// solche erkennbar). Wird verhindert, statt zugelassen.
+function thermoWouldCrossDiagonally(r1, c1, r2, c2, diagSegments){
+  if(Math.abs(r1-r2) !== 1 || Math.abs(c1-c2) !== 1) return false; // nur relevant für Diagonalschritte
+  const minR = Math.min(r1,r2), minC = Math.min(c1,c2);
+  const isMainDiag = (r1===minR && c1===minC) || (r2===minR && c2===minC);
+  return diagSegments.some(seg => {
+    if(seg.minR !== minR || seg.minC !== minC) return false;
+    return seg.isMainDiag !== isMainDiag; // gleicher 2x2-Block, aber Gegenrichtung
+  });
+}
+function generateThermometers(solution, opts){
+  const size = 9;
+  const cellUse = {}; // "r,c" -> Anzahl Thermometer, die diese Zelle nutzen (max 2)
+  const diagSegments = []; // bereits platzierte Diagonalschritte, für die X-Kreuzungs-Prüfung
+  const thermos = [];
+  const dirs8 = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]; // inkl. diagonal
+  const targetCount = opts.countMin + Math.floor(Math.random() * (opts.countMax - opts.countMin + 1));
+  let attempts = 0;
+  const maxAttempts = targetCount * 150;
+  while(thermos.length < targetCount && attempts < maxAttempts){
+    attempts++;
+    const r0 = Math.floor(Math.random() * size), c0 = Math.floor(Math.random() * size);
+    const startKey = r0 + ',' + c0;
+    const pathUsed = new Set();
+    const startForeignUse = cellUse[startKey] || 0;
+    if(startForeignUse > 0){
+      if(!opts.allowCrossings || startForeignUse >= 2) continue;
+    } else if(!opts.allowTouching && thermoHasForeignNeighbor(r0, c0, cellUse, pathUsed, size)){
+      continue;
+    }
+    const targetLen = opts.minLen + Math.floor(Math.random() * (opts.maxLen - opts.minLen + 1));
+    const path = [[r0, c0]];
+    pathUsed.add(startKey);
+    let crossingsInPath = startForeignUse > 0 ? 1 : 0;
+    const pathDiagSegments = [];
+    let cr = r0, cc = c0;
+    while(path.length < targetLen){
+      const dirs = shuffle(dirs8.slice());
+      let placed = false;
+      for(const [dr, dc] of dirs){
+        const nr = cr + dr, nc = cc + dc;
+        if(nr < 0 || nr >= size || nc < 0 || nc >= size) continue;
+        const key = nr + ',' + nc;
+        if(pathUsed.has(key)) continue; // keine Schleife im selben Thermometer
+        if(solution[nr][nc] <= solution[cr][cc]) continue; // muss strikt ansteigen
+        if(thermoWouldCrossDiagonally(cr, cc, nr, nc, diagSegments)) continue; // keine unsichtbare X-Kreuzung
+        const foreignUse = cellUse[key] || 0;
+        if(foreignUse > 0){
+          // potenzielle Kreuzung mit einem bestehenden Thermometer
+          if(!opts.allowCrossings) continue;
+          if(foreignUse >= 2) continue; // schon von 2 Thermometern belegt
+          if(crossingsInPath >= opts.maxCrossPerThermo) continue;
+          if(Math.random() > opts.crossChance) continue;
+        } else if(!opts.allowTouching && thermoHasForeignNeighbor(nr, nc, cellUse, pathUsed, size)){
+          continue;
+        }
+        path.push([nr, nc]);
+        pathUsed.add(key);
+        if(foreignUse > 0) crossingsInPath++;
+        if(dr !== 0 && dc !== 0){
+          const minR = Math.min(cr,nr), minC = Math.min(cc,nc);
+          const isMainDiag = (cr===minR && cc===minC) || (nr===minR && nc===minC);
+          pathDiagSegments.push({ minR, minC, isMainDiag });
+        }
+        cr = nr; cc = nc;
+        placed = true;
+        break;
+      }
+      if(!placed) break;
+    }
+    if(path.length >= 2){
+      path.forEach(([r,c]) => { cellUse[r+','+c] = (cellUse[r+','+c] || 0) + 1; });
+      diagSegments.push(...pathDiagSegments);
+      thermos.push(path);
+    }
+  }
+  return thermos;
+}
+
+// Weist jedem Thermometer eine Farbe zu, sodass zwei Thermometer, die sich
+// eine Zelle teilen (Kreuzung), nie dieselbe Farbe bekommen — sonst wäre an
+// der Kreuzung nicht mehr erkennbar, dass dort zwei verschiedene Thermometer
+// verlaufen. Gleiche Greedy-Graph-Färbung wie bei den Killer-Sudoku-Käfigen.
+const THERMO_COLOR_PALETTE = [
+  'var(--lilac)', 'var(--accent-dark)', 'var(--primary-dark)',
+  'var(--danger-ink)', 'var(--success)', '#4A6FA5',
+];
+function assignThermoColors(thermos){
+  const neighborIds = thermos.map(() => new Set());
+  for(let i = 0; i < thermos.length; i++){
+    const setI = new Set(thermos[i].map(([r,c]) => r+','+c));
+    for(let j = i+1; j < thermos.length; j++){
+      const shareCell = thermos[j].some(([r,c]) => setI.has(r+','+c));
+      if(shareCell){ neighborIds[i].add(j); neighborIds[j].add(i); }
+    }
+  }
+  const colorIndexOf = {};
+  const order = thermos.map((_,i) => i).sort((a,b) => neighborIds[b].size - neighborIds[a].size);
+  order.forEach(i => {
+    const used = new Set();
+    neighborIds[i].forEach(j => { if(colorIndexOf[j] !== undefined) used.add(colorIndexOf[j]); });
+    let chosen = 0;
+    while(used.has(chosen) && chosen < THERMO_COLOR_PALETTE.length - 1) chosen++;
+    colorIndexOf[i] = chosen;
+  });
+  return thermos.map((path, i) => ({ path, color: THERMO_COLOR_PALETTE[colorIndexOf[i]] }));
+}
+
+function startThermoSudoku(level){
+  activeGameId = 'thermo-sudoku';
+  stopPuzzleTimer(game); // eventuell noch laufendes Intervall des vorherigen Rätsels beenden
+  const solution = generateFullBoard();
+  const thermometersRaw = generateThermometers(solution, level);
+  const thermoCellSet = new Set();
+  thermometersRaw.forEach(path => path.forEach(([r,c]) => thermoCellSet.add(r+','+c)));
+  const thermometers = assignThermoColors(thermometersRaw);
+  const puzzle = Array.from({length:9}, () => Array(9).fill(0));
+  // Vorgaben nur außerhalb der Thermometer platzieren (wie im echten Thermo-
+  // Sudoku üblich — auf den Thermometern selbst stehen keine Vorgaben).
+  const cellIdx = shuffle(Array.from({length:81}, (_,i) => i)).filter(idx => !thermoCellSet.has(Math.floor(idx/9)+','+(idx%9)));
+  const givensWanted = level.givensMin + Math.floor(Math.random() * (level.givensMax - level.givensMin + 1));
+  for(let i = 0; i < Math.min(givensWanted, cellIdx.length); i++){
+    const idx = cellIdx[i];
+    const r = Math.floor(idx / 9), c = idx % 9;
+    puzzle[r][c] = solution[r][c];
+  }
+  const savedHighlightThermo = getTogglePref('thermo-sudoku', 'highlight', false);
+  const savedInputModeThermo = getTogglePref('thermo-sudoku', 'inputMode', 'popup');
+  game = {
+    statsKey: 'thermo-sudoku',
+    level,
+    puzzle,
+    solution,
+    values: puzzle.map(row => row.slice()),
+    cages: null,
+    thermometers,
+    hasInteracted: false,
+    counted: false,
+    highlightEnabled: savedHighlightThermo,
+    inputMode: savedInputModeThermo,
+    markedValue: null,
+    startTime: null, timerInterval: null, elapsedSeconds: 0,
+  };
+  document.getElementById('game-title').textContent = 'Thermo Sudoku';
+  document.getElementById('game-level-chip').textContent = starsFor(level.id);
+  refreshHintButton('btn-game-hint', 'game-hint-count', 'thermo-sudoku');
+  resetRevealLink('btn-game-reveal');
+  document.getElementById('cage-style-group').classList.add('hidden'); // keine Käfige bei Thermo Sudoku
+  document.getElementById('highlight-toggle-checkbox').checked = savedHighlightThermo;
+  document.getElementById('input-mode-checkbox').checked = (savedInputModeThermo === 'popup');
+  document.getElementById('inline-input').classList.toggle('hidden', savedInputModeThermo === 'popup');
+  refreshInlineMarks();
+  startPuzzleTimer(game, 'game-timer');
+  renderGrid();
+  updateCheckButton();
+  showScreen('game');
+}
+
+// Zeichnet die Thermometer als SVG-Ebene über dem Gitter: dicker runder
+// Balken je Thermometer mit einem großen Kolben-Kreis am Startpunkt.
+function renderThermoOverlay(){
+  const svg = document.getElementById('thermo-overlay');
+  svg.innerHTML = '';
+  if(!game || !game.thermometers || !game.thermometers.length) return;
+  const cell = 396 / 9;
+  const center = (r, c) => ({ x: c * cell + cell/2, y: r * cell + cell/2 });
+  const ns = 'http://www.w3.org/2000/svg';
+  game.thermometers.forEach(th => {
+    const pts = th.path.map(([r,c]) => center(r,c));
+    const poly = document.createElementNS(ns, 'polyline');
+    poly.setAttribute('points', pts.map(p => `${p.x},${p.y}`).join(' '));
+    poly.setAttribute('class', 'thermo-line');
+    poly.style.stroke = th.color;
+    svg.appendChild(poly);
+    const bulb = document.createElementNS(ns, 'circle');
+    bulb.setAttribute('cx', pts[0].x);
+    bulb.setAttribute('cy', pts[0].y);
+    bulb.setAttribute('r', cell * 0.32);
+    bulb.setAttribute('class', 'thermo-bulb');
+    bulb.style.fill = th.color;
+    svg.appendChild(bulb);
+  });
+}
+
+function openNumpad(row, col, cellEl){
+  game.activeCell = { row, col, el: cellEl };
+  document.querySelectorAll('.cell.selected').forEach(el => el.classList.remove('selected'));
+  cellEl.classList.add('selected');
+  document.getElementById('numpad-backdrop').classList.remove('hidden');
+  document.getElementById('toggle-strip').classList.add('toggles-locked');
+  highlightRowCol(row, col);
+}
+function closeNumpad(){
+  document.getElementById('numpad-backdrop').classList.add('hidden');
+  document.getElementById('toggle-strip').classList.remove('toggles-locked');
+  if(game.activeCell) game.activeCell.el.classList.remove('selected');
+  clearRowColHighlight();
+}
+// Hebt bei aktiviertem Hilfslinien-Regler alle Felder der aktuellen Reihe
+// und Spalte grau hervor (außer dem gerade bearbeiteten Feld selbst) — reine
+// Orientierungshilfe, verrät keine Lösung. Wird beim Schließen des
+// Zifferblocks bzw. Verlassen des Feldes wieder zurückgesetzt.
+function highlightRowCol(row, col){
+  if(!game || !game.highlightEnabled) return;
+  document.querySelectorAll('#sudoku-grid .cell').forEach(cell => {
+    const r = +cell.dataset.row, c = +cell.dataset.col;
+    if((r === row || c === col) && !(r === row && c === col)){
+      cell.classList.add('rc-highlight');
+    }
+  });
+}
+function clearRowColHighlight(){
+  document.querySelectorAll('#sudoku-grid .rc-highlight').forEach(cell => cell.classList.remove('rc-highlight'));
+}
+document.getElementById('highlight-toggle-checkbox').addEventListener('change', (e) => {
+  if(!game) return;
+  game.highlightEnabled = e.target.checked;
+  setTogglePref(game.statsKey, 'highlight', e.target.checked);
+  // Falls gerade ein Feld offen ist, Hervorhebung sofort an-/abschalten
+  if(game.activeCell){
+    clearRowColHighlight();
+    highlightRowCol(game.activeCell.row, game.activeCell.col);
+  }
+});
+
+// Zifferblock 1-9 + Leeren-Button aufbauen
+const numpadEl = document.getElementById('numpad');
+for(let n = 1; n <= 9; n++){
+  const b = document.createElement('button');
+  b.textContent = n;
+  b.addEventListener('click', () => setCellValue(n));
+  numpadEl.appendChild(b);
+}
+const clearBtn = document.createElement('button');
+clearBtn.className = 'clear-btn';
+clearBtn.textContent = 'Feld leeren';
+clearBtn.addEventListener('click', () => setCellValue(0));
+numpadEl.appendChild(clearBtn);
+
+document.getElementById('numpad-backdrop').addEventListener('click', (e) => {
+  if(e.target.id === 'numpad-backdrop') closeNumpad();
+});
+
+/* ============================================================
+   DIREKTEINGABE (Regler "Eingabe" = Aus): statt des Popup-
+   Zifferblocks steht eine feste 3x3-Zahlenauswahl unterhalb der
+   Aktions-Buttons. Der Anwender markiert eine Zahl (oder "Zahl
+   löschen"), die dann per Antippen beliebiger Felder im Rätsel
+   eingesetzt wird — ohne dass sich für jedes Feld erneut ein
+   Popup öffnet. Betrifft alle Spiele mit demselben Sudoku-Screen
+   (Sudoku, Killer Sudoku, Thermo Sudoku).
+   ============================================================ */
+const inlineNumpadEl = document.getElementById('inline-numpad');
+for(let n = 1; n <= 9; n++){
+  const b = document.createElement('button');
+  b.textContent = n;
+  b.addEventListener('click', () => markInlineValue(n));
+  inlineNumpadEl.appendChild(b);
+}
+function markInlineValue(value){
+  if(!game) return;
+  game.markedValue = (game.markedValue === value) ? null : value; // erneutes Antippen hebt Markierung auf
+  refreshInlineMarks();
+}
+function refreshInlineMarks(){
+  document.querySelectorAll('#inline-numpad button:not(.inline-delete-btn)').forEach(b => {
+    b.classList.toggle('marked', game && game.markedValue === Number(b.textContent));
+  });
+  document.getElementById('inline-delete-btn').classList.toggle('marked', !!game && game.markedValue === 'delete');
+}
+document.getElementById('inline-delete-btn').addEventListener('click', () => {
+  if(!game) return;
+  game.markedValue = (game.markedValue === 'delete') ? null : 'delete';
+  refreshInlineMarks();
+});
+// Ersetzt den direkten openNumpad()-Aufruf beim Antippen einer Zelle: bei
+// aktivem Popup-Modus wie gehabt, bei Direkteingabe wird die markierte
+// Zahl (bzw. Löschen) sofort ohne Popup eingesetzt.
+function handleCellTap(r, c, cellEl){
+  if(game.inputMode === 'direct'){
+    if(game.markedValue === null || game.markedValue === undefined) return;
+    game.activeCell = { row:r, col:c, el:cellEl };
+    setCellValue(game.markedValue === 'delete' ? 0 : game.markedValue);
+    // setCellValue() ruft intern closeNumpad() auf, das die Fokus-Hervorhebung
+    // wieder löscht (sie ist eigentlich für das Popup gedacht) — im Direkt-
+    // eingabe-Modus gibt es aber kein Popup zum Schließen, daher hier direkt
+    // im Anschluss erneut anwenden, sonst bleibt "Fokus" wirkungslos.
+    highlightRowCol(r, c);
+  } else {
+    openNumpad(r, c, cellEl);
+  }
+}
+document.getElementById('input-mode-checkbox').addEventListener('change', (e) => {
+  if(!game) return;
+  game.inputMode = e.target.checked ? 'popup' : 'direct';
+  setTogglePref(game.statsKey, 'inputMode', game.inputMode);
+  document.getElementById('inline-input').classList.toggle('hidden', game.inputMode === 'popup');
+  if(game.inputMode === 'popup'){
+    game.markedValue = null;
+    refreshInlineMarks();
+  }
+});
+
+function setCellValue(n){
+  const { row, col, el } = game.activeCell;
+  game.values[row][col] = n;
+  game.hasInteracted = true;
+  // Eigener Kindknoten für die Zahl, damit ein eventuelles Käfig-Summen-
+  // Label (falls die Ankerzelle eines Käfigs
+  // zufällig editierbar ist) nicht mit überschrieben wird.
+  // BUGFIX: vorher setzte "el.textContent = n" ALLE Kindknoten der Zelle
+  // zurück, inklusive eines eventuell vorhandenen Käfig-Summen-Labels.
+  let valueSpan = el.querySelector('.cell-value');
+  if(n === 0){
+    if(valueSpan) valueSpan.remove();
+  } else {
+    if(!valueSpan){
+      valueSpan = document.createElement('span');
+      valueSpan.className = 'cell-value';
+      el.appendChild(valueSpan);
+    }
+    valueSpan.textContent = n;
+  }
+  el.classList.remove('wrong'); // Bearbeitung hebt rote Markierung wieder auf
+  if(game.cageStyle === 'fill'){
+    el.style.backgroundColor = el.dataset.cageBg || '';
+  }
+  closeNumpad();
+  updateCheckButton();
+}
+
+function updateCheckButton(){
+  const complete = game.values.every(row => row.every(v => v !== 0));
+  document.getElementById('btn-check').disabled = !complete;
+}
+
+document.getElementById('btn-check').addEventListener('click', () => {
+  let allCorrect = true;
+  document.querySelectorAll('#sudoku-grid .cell').forEach(cell => {
+    const r = +cell.dataset.row, c = +cell.dataset.col;
+    if(game.puzzle[r][c] !== 0) return; // vorgegebene Zahlen nicht prüfen
+    const correct = game.values[r][c] === game.solution[r][c];
+    cell.classList.toggle('wrong', !correct);
+    if(game.cageStyle === 'fill'){
+      // Bei eingefärbten Käfig-Flächen wäre die rote Markierung sonst nicht sichtbar,
+      // weil die Käfig-Füllfarbe als Inline-Style Vorrang hätte.
+      cell.style.backgroundColor = correct ? (cell.dataset.cageBg || '') : 'var(--danger-bg)';
+    }
+    if(!correct) allCorrect = false;
+  });
+  if(allCorrect && !game.counted){
+    bumpStat(game.statsKey, 'played');
+    bumpStat(game.statsKey, 'won');
+    game.counted = true;
+    stopPuzzleTimer(game);
+    document.getElementById('success-text').textContent =
+      game.statsKey === 'killer-sudoku' ? 'Alle Käfige und Zahlen stimmen. Stark gespielt!'
+      : game.statsKey === 'thermo-sudoku' ? 'Alle Thermometer und Zahlen stimmen. Stark gespielt!'
+      : 'Alle Zahlen sind richtig. Stark gespielt!';
+    document.getElementById('success-overlay').classList.remove('hidden');
+  }
+  // Rätsel bleibt bei Fehlern weiterhin spielbar (kein Reset)
+});
+
+document.getElementById('btn-new-puzzle').addEventListener('click', () => {
+  abandonSudokuIfNeeded();
+  if(activeGameId === 'killer-sudoku') startKillerSudoku(game.level);
+  else if(activeGameId === 'thermo-sudoku') startThermoSudoku(game.level);
+  else startSudoku(game.level);
+});
+document.getElementById('btn-success-next').addEventListener('click', () => {
+  document.getElementById('success-overlay').classList.add('hidden');
+  if(activeGameId === 'hashi') startHashi(hashi.level);
+  else if(activeGameId === 'minesweeper') startMinesweeper(mine.cols, mine.rows, mine.mineCount, mine.difficultyId);
+  else if(activeGameId === 'killer-sudoku') startKillerSudoku(game.level);
+  else if(activeGameId === 'thermo-sudoku') startThermoSudoku(game.level);
+  else if(activeGameId === 'kakuro') startKakuro(kakuro.level);
+  else if(activeGameId === 'futoshiki') startFutoshiki(futo.level);
+  else startSudoku(game.level);
+});
+document.getElementById('btn-success-levels').addEventListener('click', () => {
+  document.getElementById('success-overlay').classList.add('hidden');
+  if(activeGameId === 'hashi') renderHashiLevelsList();
+  else if(activeGameId === 'minesweeper') renderMineLevelsList();
+  else if(activeGameId === 'killer-sudoku') renderKillerLevelsList();
+  else if(activeGameId === 'thermo-sudoku') renderThermoLevelsList();
+  else if(activeGameId === 'kakuro') renderKakuroLevelsList();
+  else if(activeGameId === 'futoshiki') renderFutoshikiLevelsList();
+  else renderLevelsList();
+  showScreen('levels');
+});
+
+/* ============================================================
+   HASHI (HASHIWOKAKERO): GENERIERUNG
+   Prinzip: das Lösungsnetz wächst schrittweise. Jede neue Insel
+   wird per Zufallsrichtung direkt an eine bereits platzierte Insel
+   angehängt (mit 2-4 Feldern Abstand) und sofort mit einer Brücke
+   verbunden. Dadurch ist der gesamte Inselgraph automatisch immer
+   zusammenhängend (keine nachträgliche Reparatur nötig), und jede
+   neue Insel wird nur akzeptiert, wenn sie zu KEINER bestehenden
+   Insel direkt angrenzt (auch nicht diagonal) — das hält das
+   Rätsel übersichtlich. Aus dem fertigen Brückennetz werden die
+   Insel-Zahlen abgeleitet (= Summe der Brücken an dieser Insel).
+   Der Spieler baut dieses Netz nach; geprüft wird exakt dagegen.
+   ============================================================ */
+let hashi = null; // { level, gridSize, islands, solutionBridges, userBridges }
+
+function generateHashiPuzzle(level){
+  const size = level.size;
+  const target = level.islands;
+  const islands = [{ id:0, r: Math.floor(Math.random()*size), c: Math.floor(Math.random()*size) }];
+  const bridges = []; // { a, b, count, horizontal, r1,c1,r2,c2 }
+  // Zellen, die bereits von einer gebauten Brücke belegt sind (exkl. Endpunkte).
+  // BUGFIX: Ohne diese Prüfung konnten neue Inseln direkt auf dem Pfad einer
+  // bereits bestehenden Brücke landen (oder eine neue Brücke durch eine Insel
+  // hindurchgehen) — dadurch war die vom Generator berechnete Lösung für den
+  // Spieler gar nicht mehr nachbaubar, das Rätsel also faktisch unlösbar.
+  const bridgeCells = new Set();
+
+  function markBridgeCells(r1, c1, r2, c2, horizontal){
+    if(horizontal){
+      const cMin = Math.min(c1,c2), cMax = Math.max(c1,c2);
+      for(let c = cMin+1; c < cMax; c++) bridgeCells.add(r1 + ',' + c);
+    } else {
+      const rMin = Math.min(r1,r2), rMax = Math.max(r1,r2);
+      for(let r = rMin+1; r < rMax; r++) bridgeCells.add(r + ',' + c1);
+    }
+  }
+  function isFree(r, c){
+    if(r < 0 || r >= size || c < 0 || c >= size) return false;
+    if(bridgeCells.has(r + ',' + c)) return false;
+    return !islands.some(isl => Math.abs(isl.r - r) <= 1 && Math.abs(isl.c - c) <= 1);
+  }
+  function crosses(newB){
+    return bridges.some(b => {
+      if(b.horizontal === newB.horizontal) return false;
+      const h = b.horizontal ? b : newB;
+      const v = b.horizontal ? newB : b;
+      const hr = h.r1, hc1 = Math.min(h.c1,h.c2), hc2 = Math.max(h.c1,h.c2);
+      const vc = v.c1, vr1 = Math.min(v.r1,v.r2), vr2 = Math.max(v.r1,v.r2);
+      return vc > hc1 && vc < hc2 && hr > vr1 && hr < vr2;
+    });
+  }
+
+  let guard = 0;
+  while(islands.length < target && guard < 4000){
+    guard++;
+    const anchor = islands[Math.floor(Math.random() * islands.length)];
+    const dirs = shuffle([[1,0],[-1,0],[0,1],[0,-1]]);
+    let placed = false;
+    for(const [dr,dc] of dirs){
+      const dists = shuffle([2,3,4]);
+      for(const dist of dists){
+        const r = anchor.r + dr*dist, c = anchor.c + dc*dist;
+        if(r < 0 || r >= size || c < 0 || c >= size) continue;
+        let blocked = false;
+        for(let s = 1; s < dist; s++){
+          const pr = anchor.r + dr*s, pc = anchor.c + dc*s;
+          if(islands.some(isl => isl.r === pr && isl.c === pc)){ blocked = true; break; }
+          if(bridgeCells.has(pr + ',' + pc)){ blocked = true; break; }
+        }
+        if(blocked) continue;
+        if(!isFree(r, c)) continue;
+        const horizontal = dr === 0;
+        const candidate = { r1:anchor.r, c1:anchor.c, r2:r, c2:c, horizontal };
+        if(crosses(candidate)) continue;
+        const newIsl = { id: islands.length, r, c };
+        islands.push(newIsl);
+        const count = Math.random() < 0.7 ? 1 : 2;
+        bridges.push({ a:anchor.id, b:newIsl.id, count, horizontal, r1:anchor.r, c1:anchor.c, r2:r, c2:c });
+        markBridgeCells(anchor.r, anchor.c, r, c, horizontal);
+        placed = true;
+        break;
+      }
+      if(placed) break;
+    }
+  }
+
+  // Zahlen aus dem Lösungsnetz ableiten
+  islands.forEach(isl => { isl.target = 0; });
+  bridges.forEach(b => {
+    islands[b.a].target += b.count;
+    islands[b.b].target += b.count;
+  });
+
+  return { size, islands, solutionBridges: bridges };
+}
+
+function startHashi(level){
+  activeGameId = 'hashi';
+  stopPuzzleTimer(hashi); // eventuell noch laufendes Intervall des vorherigen Rätsels beenden
+  let puzzle = null;
+  for(let i = 0; i < 8 && !puzzle; i++){
+    const p = generateHashiPuzzle(level);
+    if(p.islands.length >= level.islands) puzzle = p;
+  }
+  if(!puzzle) puzzle = generateHashiPuzzle(level); // Fallback, falls Pech beim Würfeln
+
+  hashi = {
+    level,
+    gridSize: puzzle.size,
+    islands: puzzle.islands,
+    solutionBridges: puzzle.solutionBridges,
+    userBridges: new Map(), // key "a-b" (a<b) -> count 0/1/2
+    hasInteracted: false,   // wird true, sobald der Spieler eine Brücke zieht
+    counted: false,         // verhindert Doppelzählung in der Statistik
+    startTime: null, timerInterval: null, elapsedSeconds: 0,
+  };
+  document.getElementById('hashi-level-chip').textContent = starsFor(level.id);
+  refreshHintButton('btn-hashi-hint', 'hashi-hint-count', 'hashi');
+  resetRevealLink('btn-hashi-reveal');
+  startPuzzleTimer(hashi, 'hashi-timer');
+  renderHashi();
+  updateHashiCheckButton();
+  showScreen('hashi');
+}
+
+// Zählt das aktuelle Rätsel als Fehlversuch in der Statistik, aber NUR wenn
+// der Spieler tatsächlich schon eine Brücke gezogen hatte.
+function abandonHashiIfNeeded(){
+  if(hashi && hashi.hasInteracted && !hashi.counted){
+    bumpStat('hashi', 'played');
+    hashi.counted = true;
+  }
+  stopPuzzleTimer(hashi);
+}
+
+function hashiPairKey(a, b){ return a < b ? a+'-'+b : b+'-'+a; }
+
+// Layout-Berechnung ausgelagert, damit Rendering UND Drag-Interaktion
+// dieselben Koordinaten verwenden.
+const HASHI_PAD = 30;
+const HASHI_CANVAS = 400;
+function hashiLayout(){
+  const size = hashi.gridSize;
+  const usable = HASHI_CANVAS - HASHI_PAD * 2;
+  const step = usable / (size - 1 || 1);
+  return { pad: HASHI_PAD, usable, step };
+}
+function hashiPos(isl){
+  const { pad, step } = hashiLayout();
+  return { x: pad + isl.c * step, y: pad + isl.r * step };
+}
+
+function renderHashi(){
+  const svg = document.getElementById('hashi-svg');
+  svg.innerHTML = '';
+  const { pad, usable, step } = hashiLayout();
+  const size = hashi.gridSize;
+
+  // Gitterlinien zeichnen — eine Linie je Zeile und Spalte des zugrunde-
+  // liegenden Rasters, damit erkennbar ist, welche Inseln auf einer Achse
+  // liegen (wichtig, um mögliche Brücken einschätzen zu können).
+  for(let i = 0; i < size; i++){
+    const yLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+    yLine.setAttribute('class','hashi-gridline');
+    yLine.setAttribute('x1', pad); yLine.setAttribute('y1', pad + i * step);
+    yLine.setAttribute('x2', pad + usable); yLine.setAttribute('y2', pad + i * step);
+    svg.appendChild(yLine);
+
+    const xLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+    xLine.setAttribute('class','hashi-gridline');
+    xLine.setAttribute('x1', pad + i * step); xLine.setAttribute('y1', pad);
+    xLine.setAttribute('x2', pad + i * step); xLine.setAttribute('y2', pad + usable);
+    svg.appendChild(xLine);
+  }
+
+  // Brücken zeichnen (liegen unter den Inseln, aber über den Gitterlinien).
+  // Ein Klick/Tap auf eine bestehende Brücke baut sie ebenfalls ab (0-1-2-0).
+  hashi.userBridges.forEach((count, key) => {
+    if(count === 0) return;
+    const [a, b] = key.split('-').map(Number);
+    const A = hashi.islands[a], B = hashi.islands[b];
+    const pA = hashiPos(A), pB = hashiPos(B);
+    const horizontal = A.r === B.r;
+    for(let i = 0; i < count; i++){
+      const offset = count === 2 ? (i === 0 ? -4 : 4) : 0;
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('class','hashi-bridge');
+      if(horizontal){
+        line.setAttribute('x1', pA.x); line.setAttribute('y1', pA.y + offset);
+        line.setAttribute('x2', pB.x); line.setAttribute('y2', pB.y + offset);
+      } else {
+        line.setAttribute('x1', pA.x + offset); line.setAttribute('y1', pA.y);
+        line.setAttribute('x2', pB.x + offset); line.setAttribute('y2', pB.y);
+      }
+      line.addEventListener('pointerdown', (e) => { e.stopPropagation(); toggleBridgeBetween(a, b); });
+      svg.appendChild(line);
+    }
+  });
+
+  // Inseln zeichnen — Verbindung wird per Ziehen (Pointer-Drag) von einer
+  // Insel zur Nachbarinsel hergestellt, statt durch zweimaliges Antippen.
+  hashi.islands.forEach(isl => {
+    const p = hashiPos(isl);
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','hashi-island');
+    const current = hashiCurrentCount(isl.id);
+    if(current === isl.target) g.classList.add('done');
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('class','base');
+    circle.setAttribute('cx', p.x); circle.setAttribute('cy', p.y); circle.setAttribute('r', 17);
+    g.appendChild(circle);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x', p.x); text.setAttribute('y', p.y);
+    text.textContent = isl.target;
+    g.appendChild(text);
+
+    g.addEventListener('pointerdown', (e) => startHashiDrag(isl.id, e));
+    svg.appendChild(g);
+  });
+}
+
+function hashiCurrentCount(islandId){
+  let sum = 0;
+  hashi.userBridges.forEach((count, key) => {
+    const [a,b] = key.split('-').map(Number);
+    if(a === islandId || b === islandId) sum += count;
+  });
+  return sum;
+}
+
+/* ---------- Ziehen einer Verbindungslinie (Pointer-Events, Maus + Touch) --------- */
+let hashiDrag = null; // { fromId, line }
+
+function hashiSvgPoint(evt){
+  const svg = document.getElementById('hashi-svg');
+  const pt = svg.createSVGPoint();
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  const ctm = svg.getScreenCTM();
+  if(!ctm) return { x: 0, y: 0 };
+  const p = pt.matrixTransform(ctm.inverse());
+  return { x: p.x, y: p.y };
+}
+
+function startHashiDrag(islandId, evt){
+  evt.preventDefault();
+  evt.stopPropagation();
+  const svg = document.getElementById('hashi-svg');
+  const p = hashiPos(hashi.islands[islandId]);
+  const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('class','hashi-drag-preview');
+  line.setAttribute('x1', p.x); line.setAttribute('y1', p.y);
+  line.setAttribute('x2', p.x); line.setAttribute('y2', p.y);
+  svg.appendChild(line);
+  hashiDrag = { fromId: islandId, line };
+  try{ svg.setPointerCapture(evt.pointerId); }catch(e){}
+  svg.addEventListener('pointermove', onHashiDragMove);
+  svg.addEventListener('pointerup', onHashiDragEnd);
+  svg.addEventListener('pointercancel', onHashiDragEnd);
+}
+
+function onHashiDragMove(evt){
+  if(!hashiDrag) return;
+  const start = hashi.islands[hashiDrag.fromId];
+  const startPos = hashiPos(start);
+  const p = hashiSvgPoint(evt);
+  const dx = p.x - startPos.x, dy = p.y - startPos.y;
+  // Vorschaulinie an der dominanten Achse ausrichten (horizontal oder vertikal),
+  // damit klar erkennbar ist, in welche Richtung gezogen wird.
+  let endX, endY;
+  if(Math.abs(dx) >= Math.abs(dy)){ endX = p.x; endY = startPos.y; }
+  else { endX = startPos.x; endY = p.y; }
+  hashiDrag.line.setAttribute('x2', endX);
+  hashiDrag.line.setAttribute('y2', endY);
+}
+
+function onHashiDragEnd(evt){
+  if(!hashiDrag) return;
+  const svg = document.getElementById('hashi-svg');
+  const start = hashi.islands[hashiDrag.fromId];
+  const startPos = hashiPos(start);
+  const p = hashiSvgPoint(evt);
+  const dx = p.x - startPos.x, dy = p.y - startPos.y;
+
+  let target = null;
+  const MIN_DRAG = 10; // Mindestbewegung in SVG-Einheiten, um ein Antippen von einem Ziehen zu unterscheiden
+  if(Math.abs(dx) >= Math.abs(dy) && Math.abs(dx) > MIN_DRAG){
+    const dir = dx > 0 ? 1 : -1;
+    const candidates = hashi.islands.filter(isl => isl.r === start.r && isl.id !== start.id && Math.sign(isl.c - start.c) === dir);
+    if(candidates.length){
+      target = candidates.reduce((best, isl) => Math.abs(isl.c - start.c) < Math.abs(best.c - start.c) ? isl : best);
+    }
+  } else if(Math.abs(dy) > MIN_DRAG){
+    const dir = dy > 0 ? 1 : -1;
+    const candidates = hashi.islands.filter(isl => isl.c === start.c && isl.id !== start.id && Math.sign(isl.r - start.r) === dir);
+    if(candidates.length){
+      target = candidates.reduce((best, isl) => Math.abs(isl.r - start.r) < Math.abs(best.r - start.r) ? isl : best);
+    }
+  }
+
+  if(svg.contains(hashiDrag.line)) svg.removeChild(hashiDrag.line);
+  try{ svg.releasePointerCapture(evt.pointerId); }catch(e){}
+  svg.removeEventListener('pointermove', onHashiDragMove);
+  svg.removeEventListener('pointerup', onHashiDragEnd);
+  svg.removeEventListener('pointercancel', onHashiDragEnd);
+  hashiDrag = null;
+
+  if(target !== null){
+    toggleBridgeBetween(start.id, target.id);
+  } else {
+    renderHashi(); // Vorschau sauber entfernen, falls kein gültiges Ziel getroffen wurde
+  }
+}
+
+/* ---------- Brücken bauen/entfernen ---------- */
+function hashiBridgeGeom(a, b){
+  const A = hashi.islands[a], B = hashi.islands[b];
+  return { r1:A.r, c1:A.c, r2:B.r, c2:B.c, horizontal: A.r === B.r };
+}
+function hashiBridgesCross(g1, g2){
+  if(g1.horizontal === g2.horizontal) return false;
+  const h = g1.horizontal ? g1 : g2;
+  const v = g1.horizontal ? g2 : g1;
+  const hr = h.r1, hc1 = Math.min(h.c1,h.c2), hc2 = Math.max(h.c1,h.c2);
+  const vc = v.c1, vr1 = Math.min(v.r1,v.r2), vr2 = Math.max(v.r1,v.r2);
+  return vc > hc1 && vc < hc2 && hr > vr1 && hr < vr2;
+}
+
+function toggleBridgeBetween(a, b){
+  hashi.hasInteracted = true;
+  const key = hashiPairKey(a, b);
+  const current = hashi.userBridges.get(key) || 0;
+  if(current === 0){
+    // Neue Brücke: darf keine bereits vorhandene Brücke kreuzen
+    const newGeom = hashiBridgeGeom(a, b);
+    let crossing = false;
+    hashi.userBridges.forEach((cnt, k) => {
+      if(cnt === 0 || crossing) return;
+      const [x,y] = k.split('-').map(Number);
+      if(hashiBridgesCross(newGeom, hashiBridgeGeom(x,y))) crossing = true;
+    });
+    if(crossing){ renderHashi(); return; }
+  }
+  const next = (current + 1) % 3; // 0 -> 1 -> 2 -> 0
+  if(next === 0) hashi.userBridges.delete(key);
+  else hashi.userBridges.set(key, next);
+  document.querySelectorAll('.hashi-island').forEach(el => el.classList.remove('wrong')); // Bearbeitung hebt rote Markierung wieder auf
+  renderHashi();
+  updateHashiCheckButton();
+}
+
+function updateHashiCheckButton(){
+  // aktivierbar sobald jede Insel mindestens eine Brücke hat (oder keine braucht)
+  const allFilled = hashi.islands.every(isl => hashiCurrentCount(isl.id) > 0 || isl.target === 0);
+  document.getElementById('btn-hashi-check').disabled = !allFilled;
+}
+
+// Prüft, ob alle gebauten Brücken zusammen EIN einziges zusammenhängendes
+// Netz über alle Inseln bilden (Kernregel von Hashiwokakero).
+function hashiIsConnected(){
+  const parent = hashi.islands.map((_, i) => i);
+  function find(x){ return parent[x] === x ? x : (parent[x] = find(parent[x])); }
+  function union(x,y){ parent[find(x)] = find(y); }
+  hashi.userBridges.forEach((count, key) => {
+    if(count === 0) return;
+    const [a,b] = key.split('-').map(Number);
+    union(a,b);
+  });
+  const root = find(0);
+  return hashi.islands.every((_, i) => find(i) === root);
+}
+
+document.getElementById('btn-hashi-check').addEventListener('click', () => {
+  let sumsCorrect = true;
+  document.querySelectorAll('.hashi-island').forEach((el, idx) => {
+    const isl = hashi.islands[idx];
+    const count = hashiCurrentCount(isl.id);
+    const wrong = count !== isl.target;
+    el.classList.toggle('wrong', wrong);
+    el.classList.toggle('done', !wrong);
+    if(wrong) sumsCorrect = false;
+  });
+
+  // Erst wenn jede Insel ihre Zahl exakt erreicht UND alle Inseln durch
+  // Brücken zu einem einzigen Netz verbunden sind, gilt das Rätsel als gelöst
+  // (das lässt auch andere gültige Lösungen zu, nicht nur die zuerst erzeugte).
+  const allCorrect = sumsCorrect && hashiIsConnected();
+
+  if(allCorrect && !hashi.counted){
+    bumpStat('hashi', 'played');
+    bumpStat('hashi', 'won');
+    hashi.counted = true;
+    stopPuzzleTimer(hashi);
+    document.getElementById('success-text').textContent = 'Alle Inseln korrekt verbunden. Stark gespielt!';
+    document.getElementById('success-overlay').classList.remove('hidden');
+  }
+  // Rätsel bleibt bei Fehlern weiter spielbar
+});
+
+document.getElementById('btn-hashi-new').addEventListener('click', () => {
+  abandonHashiIfNeeded();
+  startHashi(hashi.level);
+});
+
+/* ============================================================
+   MINESWEEPER
+   Klassisches Spielprinzip: Minen werden erst NACH dem ersten Klick
+   platziert (der angeklickte Bereich bleibt sicher), damit man nie
+   direkt beim ersten Zug verliert. Aufdecken von Feldern ohne
+   Nachbarminen deckt automatisch die umliegenden Felder mit auf
+   (Flutfüllung). Flaggen setzt man per Flaggen-Modus-Knopf, langem
+   Antippen oder Rechtsklick (Desktop).
+   ============================================================ */
+let mine = null; // { cols, rows, mineCount, grid, ... }
+
+const MINE_NUMBER_COLORS = ['', '#4F9682', '#4E9C7C', '#B8505C', '#9683C7', '#DD8B62', '#3E8E8A', '#6B4A4A', '#33414E'];
+
+function mineBuildEmptyBoard(rows, cols){
+  const grid = [];
+  for(let r = 0; r < rows; r++){
+    const row = [];
+    for(let c = 0; c < cols; c++){
+      row.push({ r, c, isMine:false, revealed:false, flagged:false, adjacent:0 });
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+
+// Platziert Minen erst nach dem ersten Klick, außerhalb des 3x3-Bereichs
+// um das angeklickte Feld, damit der Einstieg immer fair ist.
+function minePlaceMines(grid, rows, cols, mineCount, safeR, safeC){
+  const forbidden = new Set();
+  for(let dr = -1; dr <= 1; dr++){
+    for(let dc = -1; dc <= 1; dc++){
+      const r = safeR + dr, c = safeC + dc;
+      if(r >= 0 && r < rows && c >= 0 && c < cols) forbidden.add(r + ',' + c);
+    }
+  }
+  const maxPlaceable = Math.max(0, rows * cols - forbidden.size);
+  const target = Math.min(mineCount, maxPlaceable);
+  let placed = 0;
+  let guard = 0;
+  while(placed < target && guard < target * 50 + 500){
+    guard++;
+    const r = Math.floor(Math.random() * rows), c = Math.floor(Math.random() * cols);
+    if(forbidden.has(r + ',' + c) || grid[r][c].isMine) continue;
+    grid[r][c].isMine = true;
+    placed++;
+  }
+  for(let r = 0; r < rows; r++){
+    for(let c = 0; c < cols; c++){
+      if(grid[r][c].isMine) continue;
+      let count = 0;
+      for(let dr = -1; dr <= 1; dr++){
+        for(let dc = -1; dc <= 1; dc++){
+          if(dr === 0 && dc === 0) continue;
+          const rr = r + dr, cc = c + dc;
+          if(rr >= 0 && rr < rows && cc >= 0 && cc < cols && grid[rr][cc].isMine) count++;
+        }
+      }
+      grid[r][c].adjacent = count;
+    }
+  }
+  return placed;
+}
+
+function mineRevealCell(r, c){
+  const cell = mine.grid[r][c];
+  if(cell.revealed || cell.flagged) return;
+  cell.revealed = true;
+  mine.revealedCount++;
+  if(!cell.isMine && cell.adjacent === 0){
+    for(let dr = -1; dr <= 1; dr++){
+      for(let dc = -1; dc <= 1; dc++){
+        if(dr === 0 && dc === 0) continue;
+        const rr = r + dr, cc = c + dc;
+        if(rr >= 0 && rr < mine.rows && cc >= 0 && cc < mine.cols){
+          const n = mine.grid[rr][cc];
+          if(!n.revealed && !n.flagged) mineRevealCell(rr, cc);
+        }
+      }
+    }
+  }
+}
+
+function mineFormatTime(totalSeconds){
+  return String(Math.min(999, totalSeconds)).padStart(3, '0');
+}
+function startMineTimer(){
+  mine.startTime = Date.now();
+  mine.timerInterval = setInterval(() => {
+    mine.elapsedSeconds = Math.floor((Date.now() - mine.startTime) / 1000);
+    document.getElementById('mine-timer').textContent = mineFormatTime(mine.elapsedSeconds);
+  }, 1000);
+}
+function stopMineTimer(){
+  if(mine && mine.timerInterval){ clearInterval(mine.timerInterval); mine.timerInterval = null; }
+}
+
+// Zählt Statistik als Fehlversuch, wenn ein begonnenes (aber noch nicht
+// beendetes) Spiel verlassen wird — analog zu Sudoku/Hashi.
+function abandonMinesweeperIfNeeded(){
+  if(mine && mine.hasInteracted && !mine.counted && !mine.gameOver){
+    bumpStat('minesweeper', 'played');
+    mine.counted = true;
+  }
+}
+
+function mineCellSizeFor(cols){
+  const referenceWidth = 360; // sichere Bezugsbreite (App-Inhalt max. 480px, abzüglich Padding)
+  return Math.max(14, Math.min(34, Math.floor(referenceWidth / cols)));
+}
+
+function startMinesweeper(cols, rows, mines, difficultyId){
+  activeGameId = 'minesweeper';
+  stopMineTimer();
+  const grid = mineBuildEmptyBoard(rows, cols);
+  mine = {
+    difficultyId, cols, rows, mineCount: mines,
+    grid, firstClickDone:false, gameOver:false, won:false,
+    actualMines: mines, revealedCount:0, flagMode:false,
+    hasInteracted:false, counted:false,
+    startTime:null, timerInterval:null, elapsedSeconds:0,
+    cellSize: mineCellSizeFor(cols),
+  };
+  const meta = MINE_DIFFICULTIES.find(d => d.id === difficultyId);
+  document.getElementById('mine-level-chip').textContent = meta ? meta.label : 'Benutzerdefiniert';
+  document.getElementById('mine-timer').textContent = '000';
+  document.getElementById('btn-mine-flag-mode').classList.remove('active');
+  const statusEl = document.getElementById('mine-status');
+  statusEl.classList.add('hidden');
+  statusEl.classList.remove('won','lost');
+  refreshHintButton('btn-mine-hint', 'mine-hint-count', 'minesweeper');
+  renderMinesweeperBoard();
+  updateMineHud();
+  showScreen('minesweeper');
+}
+
+function updateMineHud(){
+  let flags = 0;
+  for(let r = 0; r < mine.rows; r++) for(let c = 0; c < mine.cols; c++) if(mine.grid[r][c].flagged) flags++;
+  document.getElementById('mine-remaining').textContent = mine.mineCount - flags;
+}
+
+function mineCheckWin(){
+  const totalCells = mine.rows * mine.cols;
+  const nonMineCells = totalCells - mine.actualMines;
+  let revealedNonMine = 0;
+  for(let r = 0; r < mine.rows; r++){
+    for(let c = 0; c < mine.cols; c++){
+      const cell = mine.grid[r][c];
+      if(cell.revealed && !cell.isMine) revealedNonMine++;
+    }
+  }
+  if(revealedNonMine === nonMineCells) mineEndGame(true);
+}
+
+function mineEndGame(won, hitR, hitC){
+  mine.gameOver = true;
+  mine.won = won;
+  stopMineTimer();
+  // Bei Spielende alle Minen sichtbar machen
+  for(let r = 0; r < mine.rows; r++){
+    for(let c = 0; c < mine.cols; c++){
+      if(mine.grid[r][c].isMine) mine.grid[r][c].revealed = true;
+    }
+  }
+  const statusEl = document.getElementById('mine-status');
+  if(won){
+    if(!mine.counted){
+      bumpStat('minesweeper', 'played');
+      bumpStat('minesweeper', 'won');
+      mine.counted = true;
+    }
+    document.getElementById('success-text').textContent = 'Alle Felder ohne Mine sind aufgedeckt. Stark gespielt!';
+    document.getElementById('success-overlay').classList.remove('hidden');
+  } else {
+    mine.hitR = hitR; mine.hitC = hitC;
+    if(!mine.counted){
+      bumpStat('minesweeper', 'played'); // definitiver Verlust zählt sofort als Fehlversuch
+      mine.counted = true;
+    }
+    statusEl.textContent = '💥 Verloren — versuch es nochmal!';
+    statusEl.classList.remove('hidden');
+    statusEl.classList.add('lost');
+  }
+}
+
+function mineHandleCellClick(r, c){
+  if(mine.gameOver) return;
+  const cell = mine.grid[r][c];
+  if(mine.flagMode){
+    mineToggleFlag(r, c);
+    return;
+  }
+  if(cell.flagged || cell.revealed) return;
+  mine.hasInteracted = true;
+  if(!mine.firstClickDone){
+    mine.firstClickDone = true;
+    mine.actualMines = minePlaceMines(mine.grid, mine.rows, mine.cols, mine.mineCount, r, c);
+    startMineTimer();
+  }
+  mineRevealCell(r, c);
+  if(cell.isMine){
+    mineEndGame(false, r, c);
+  } else {
+    mineCheckWin();
+  }
+  renderMinesweeperBoard();
+  updateMineHud();
+}
+
+function mineToggleFlag(r, c){
+  if(mine.gameOver) return;
+  const cell = mine.grid[r][c];
+  if(cell.revealed) return;
+  cell.flagged = !cell.flagged;
+  mine.hasInteracted = true;
+  renderMinesweeperBoard();
+  updateMineHud();
+}
+
+function mineAttachCellHandlers(el, r, c){
+  let pressTimer = null;
+  let longPressFired = false;
+  el.addEventListener('pointerdown', (e) => {
+    if(e.button === 2) return; // Rechtsklick übernimmt contextmenu-Handler
+    longPressFired = false;
+    pressTimer = setTimeout(() => {
+      longPressFired = true;
+      mineToggleFlag(r, c);
+    }, 450);
+  });
+  const cancelPress = () => { if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; } };
+  el.addEventListener('pointerup', () => {
+    cancelPress();
+    if(!longPressFired) mineHandleCellClick(r, c);
+  });
+  el.addEventListener('pointerleave', cancelPress);
+  el.addEventListener('pointercancel', cancelPress);
+  el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    mineToggleFlag(r, c);
+  });
+}
+
+function renderMinesweeperBoard(){
+  const grid = document.getElementById('mine-grid');
+  grid.innerHTML = '';
+  const size = mine.cellSize;
+  grid.style.gridTemplateColumns = `repeat(${mine.cols}, ${size}px)`;
+  const frag = document.createDocumentFragment();
+  for(let r = 0; r < mine.rows; r++){
+    for(let c = 0; c < mine.cols; c++){
+      const cell = mine.grid[r][c];
+      const el = document.createElement('div');
+      el.className = 'mine-cell';
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      el.style.fontSize = Math.max(10, Math.floor(size * 0.55)) + 'px';
+
+      if(cell.revealed){
+        el.classList.add('revealed');
+        if(cell.isMine){
+          el.classList.add((mine.gameOver && !mine.won && cell.r === mine.hitR && cell.c === mine.hitC) ? 'mine-hit' : 'mine-shown');
+          el.textContent = '💣';
+        } else if(cell.adjacent > 0){
+          el.textContent = cell.adjacent;
+          el.style.color = MINE_NUMBER_COLORS[cell.adjacent];
+        }
+      } else if(cell.flagged){
+        el.classList.add('flagged');
+        el.textContent = (mine.gameOver && !mine.won && !cell.isMine) ? '❌' : '🚩';
+      }
+
+      mineAttachCellHandlers(el, r, c);
+      frag.appendChild(el);
+    }
+  }
+  grid.appendChild(frag);
+}
+
+document.getElementById('btn-mine-flag-mode').addEventListener('click', () => {
+  mine.flagMode = !mine.flagMode;
+  document.getElementById('btn-mine-flag-mode').classList.toggle('active', mine.flagMode);
+});
+document.getElementById('btn-mine-new').addEventListener('click', () => {
+  abandonMinesweeperIfNeeded();
+  startMinesweeper(mine.cols, mine.rows, mine.mineCount, mine.difficultyId);
+});
+
+// Tipp: deckt ein zufälliges, garantiert minenfreies verdecktes Feld auf.
+// Vor dem allerersten Klick sind noch keine Minen platziert — in diesem Fall
+// verhält sich der Tipp wie ein normaler (sicherer) erster Klick.
+function useMinesweeperHint(){
+  if(!mine || mine.gameOver) return;
+  if(getHintsRemaining('minesweeper') <= 0) return;
+  const candidates = [];
+  for(let r = 0; r < mine.rows; r++){
+    for(let c = 0; c < mine.cols; c++){
+      const cell = mine.grid[r][c];
+      if(cell.revealed || cell.flagged) continue;
+      if(mine.firstClickDone && cell.isMine) continue;
+      candidates.push([r,c]);
+    }
+  }
+  if(!candidates.length) return;
+  const [r,c] = candidates[Math.floor(Math.random() * candidates.length)];
+  mine.hasInteracted = true;
+  if(!mine.firstClickDone){
+    mine.firstClickDone = true;
+    mine.actualMines = minePlaceMines(mine.grid, mine.rows, mine.cols, mine.mineCount, r, c);
+    startMineTimer();
+  }
+  mineRevealCell(r, c);
+  consumeHint('minesweeper');
+  mineCheckWin();
+  renderMinesweeperBoard();
+  updateMineHud();
+  refreshHintButton('btn-mine-hint', 'mine-hint-count', 'minesweeper');
+}
+document.getElementById('btn-mine-hint').addEventListener('click', useMinesweeperHint);
+
+/* ============================================================
+   FUTOSHIKI
+   Ein NxN-Lateinisches-Quadrat (jede Zahl 1..N genau einmal je Zeile
+   und Spalte, keine 3x3-Boxen wie bei Sudoku). Zusätzlich zeigen
+   einige Zwischenräume zwischen Nachbarzellen ein < oder > — die
+   Spitze zeigt immer zur kleineren Zahl. Einige Felder sind vorgegeben.
+   Darstellung: (2N-1)x(2N-1)-Raster, an geraden Positionen Zahlenfelder,
+   an ungeraden die Ungleichheitszeichen.
+   ============================================================ */
+let futo = null; // { level, n, solution, given, values, hGap, vGap, cellSize, gapSize, hasInteracted, counted, activeCell }
+
+const FUTOSHIKI_LEVELS = [
+  { id:1, label:'Sehr leicht', desc:'5×5, viele Vorgaben', n:5, givenCount:8,  constraintCount:6 },
+  { id:2, label:'Leicht',      desc:'6×6',                  n:6, givenCount:10, constraintCount:8 },
+  { id:3, label:'Mittel',      desc:'7×7',                  n:7, givenCount:11, constraintCount:10 },
+  { id:4, label:'Schwer',      desc:'8×8',                  n:8, givenCount:12, constraintCount:12 },
+  { id:5, label:'Experte',     desc:'9×9, wenige Vorgaben',  n:9, givenCount:13, constraintCount:14 },
+];
+
+function renderFutoshikiLevelsList(){
+  document.getElementById('levels-title').textContent = 'Futoshiki';
+  document.getElementById('mine-custom-panel').classList.add('hidden');
+  const list = document.getElementById('levels-list');
+  list.innerHTML = '';
+  FUTOSHIKI_LEVELS.forEach(lv => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    const dots = Array.from({length:5}, (_,i) => `<span class="${i < lv.id ? 'on' : ''}"></span>`).join('');
+    btn.innerHTML = `
+      <div class="dots">${dots}</div>
+      <div class="label"><b>${lv.label}</b><small>${lv.desc}</small></div>
+      <div class="arrow">›</div>`;
+    btn.addEventListener('click', () => startFutoshiki(lv));
+    list.appendChild(btn);
+  });
+}
+
+function futoIsSafe(board, row, col, num, n){
+  for(let x = 0; x < n; x++){ if(board[row][x] === num) return false; if(board[x][col] === num) return false; }
+  return true;
+}
+function futoFillLatin(board, n, pos = 0){
+  if(pos === n * n) return true;
+  const row = Math.floor(pos / n), col = pos % n;
+  const nums = shuffle(Array.from({length:n}, (_,i) => i + 1));
+  for(const num of nums){
+    if(futoIsSafe(board, row, col, num, n)){
+      board[row][col] = num;
+      if(futoFillLatin(board, n, pos + 1)) return true;
+      board[row][col] = 0;
+    }
+  }
+  return false;
+}
+function generateFutoshikiPuzzle(n, givenCount, constraintCount){
+  const solution = Array.from({length:n}, () => Array(n).fill(0));
+  futoFillLatin(solution, n);
+  const candidates = [];
+  for(let r = 0; r < n; r++){
+    for(let c = 0; c < n; c++){
+      if(c < n - 1) candidates.push({ r1:r, c1:c, r2:r, c2:c+1, horizontal:true });
+      if(r < n - 1) candidates.push({ r1:r, c1:c, r2:r+1, c2:c, horizontal:false });
+    }
+  }
+  shuffle(candidates);
+  const constraints = candidates.slice(0, Math.min(constraintCount, candidates.length)).map(pair => {
+    const v1 = solution[pair.r1][pair.c1], v2 = solution[pair.r2][pair.c2];
+    return { ...pair, sign: v1 < v2 ? '<' : '>' };
+  });
+  const cellIdx = shuffle(Array.from({length:n*n}, (_,i) => i));
+  const given = Array.from({length:n}, () => Array(n).fill(false));
+  for(let i = 0; i < Math.min(givenCount, n*n); i++){
+    const idx = cellIdx[i];
+    given[Math.floor(idx/n)][idx%n] = true;
+  }
+  return { n, solution, constraints, given };
+}
+
+function futoCellSizeFor(n){
+  const referenceWidth = 320; // sichere Bezugsbreite innerhalb des App-Inhalts
+  const gapSize = 14;
+  const totalGap = (n - 1) * gapSize;
+  const mainSize = Math.max(26, Math.min(46, Math.floor((referenceWidth - totalGap) / n)));
+  return { mainSize, gapSize };
+}
+
+function buildFutoNumpad(){
+  const el = document.getElementById('futo-numpad');
+  el.innerHTML = '';
+  for(let v = 1; v <= futo.n; v++){
+    const b = document.createElement('button');
+    b.textContent = v;
+    b.addEventListener('click', () => setFutoCellValue(v));
+    el.appendChild(b);
+  }
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'clear-btn';
+  clearBtn.textContent = 'Feld leeren';
+  clearBtn.addEventListener('click', () => setFutoCellValue(0));
+  el.appendChild(clearBtn);
+}
+
+function startFutoshiki(level){
+  activeGameId = 'futoshiki';
+  stopPuzzleTimer(futo); // eventuell noch laufendes Intervall des vorherigen Rätsels beenden
+  const puzzle = generateFutoshikiPuzzle(level.n, level.givenCount, level.constraintCount);
+  const hGap = Array.from({length:level.n}, () => Array(level.n - 1).fill(null));
+  const vGap = Array.from({length:level.n - 1}, () => Array(level.n).fill(null));
+  puzzle.constraints.forEach(con => {
+    if(con.horizontal) hGap[con.r1][con.c1] = con.sign;
+    else vGap[con.r1][con.c1] = con.sign;
+  });
+  const { mainSize, gapSize } = futoCellSizeFor(level.n);
+  const savedInputModeFuto = getTogglePref('futoshiki', 'inputMode', 'popup');
+  futo = {
+    level, n: level.n,
+    solution: puzzle.solution,
+    given: puzzle.given,
+    values: puzzle.given.map((row, r) => row.map((g, c) => g ? puzzle.solution[r][c] : 0)),
+    hGap, vGap,
+    cellSize: mainSize, gapSize,
+    hasInteracted:false, counted:false, activeCell:null,
+    inputMode: savedInputModeFuto, markedValue: null,
+    startTime: null, timerInterval: null, elapsedSeconds: 0,
+  };
+  document.getElementById('futo-level-chip').textContent = starsFor(level.id);
+  refreshHintButton('btn-futo-hint', 'futo-hint-count', 'futoshiki');
+  resetRevealLink('btn-futo-reveal');
+  document.getElementById('futo-input-mode-checkbox').checked = (savedInputModeFuto === 'popup');
+  document.getElementById('futo-inline-input').classList.toggle('hidden', savedInputModeFuto === 'popup');
+  startPuzzleTimer(futo, 'futo-timer');
+  buildFutoNumpad();
+  buildFutoInlineNumpad();
+  renderFutoshikiBoard();
+  updateFutoCheckButton();
+  showScreen('futoshiki');
+}
+
+function renderFutoshikiBoard(){
+  const grid = document.getElementById('futo-grid');
+  grid.innerHTML = '';
+  const n = futo.n, main = futo.cellSize, gap = futo.gapSize;
+  const sizes = [];
+  for(let i = 0; i < n; i++){ sizes.push(main + 'px'); if(i < n - 1) sizes.push(gap + 'px'); }
+  grid.style.gridTemplateColumns = sizes.join(' ');
+  grid.style.gridTemplateRows = sizes.join(' ');
+  const frag = document.createDocumentFragment();
+  for(let gr = 0; gr < 2*n - 1; gr++){
+    for(let gc = 0; gc < 2*n - 1; gc++){
+      const rowIsCell = gr % 2 === 0, colIsCell = gc % 2 === 0;
+      const el = document.createElement('div');
+      if(rowIsCell && colIsCell){
+        const r = gr/2, c = gc/2;
+        const isGiven = futo.given[r][c];
+        el.className = 'futo-cell ' + (isGiven ? 'given' : 'editable');
+        el.style.width = main + 'px'; el.style.height = main + 'px';
+        el.style.fontSize = Math.max(12, Math.floor(main * 0.45)) + 'px';
+        el.dataset.row = r; el.dataset.col = c;
+        const val = futo.values[r][c];
+        el.textContent = val === 0 ? '' : val;
+        if(!isGiven) el.addEventListener('click', () => handleFutoCellTap(r, c, el));
+      } else if(rowIsCell && !colIsCell){
+        const r = gr/2, c = (gc-1)/2;
+        el.className = 'futo-gap';
+        el.style.width = gap + 'px'; el.style.height = main + 'px';
+        const sign = futo.hGap[r][c];
+        if(sign) el.innerHTML = `<span>${sign}</span>`;
+      } else if(!rowIsCell && colIsCell){
+        const r = (gr-1)/2, c = gc/2;
+        el.className = 'futo-gap';
+        el.style.width = main + 'px'; el.style.height = gap + 'px';
+        const sign = futo.vGap[r] ? futo.vGap[r][c] : null;
+        if(sign) el.innerHTML = `<span style="transform:rotate(90deg);">${sign}</span>`;
+      } else {
+        el.style.width = gap + 'px'; el.style.height = gap + 'px';
+      }
+      frag.appendChild(el);
+    }
+  }
+  grid.appendChild(frag);
+}
+
+function openFutoNumpad(r, c, el){
+  futo.activeCell = { row:r, col:c, el };
+  document.querySelectorAll('#futo-grid .futo-cell.selected').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('futo-numpad-backdrop').classList.remove('hidden');
+  document.getElementById('futo-toggle-strip').classList.add('toggles-locked');
+}
+function closeFutoNumpad(){
+  document.getElementById('futo-numpad-backdrop').classList.add('hidden');
+  document.getElementById('futo-toggle-strip').classList.remove('toggles-locked');
+  if(futo.activeCell) futo.activeCell.el.classList.remove('selected');
+}
+function setFutoCellValue(v){
+  const { row, col, el } = futo.activeCell;
+  futo.values[row][col] = v;
+  futo.hasInteracted = true;
+  el.textContent = v === 0 ? '' : v;
+  el.classList.remove('wrong');
+  closeFutoNumpad();
+  updateFutoCheckButton();
+}
+document.getElementById('futo-numpad-backdrop').addEventListener('click', (e) => {
+  if(e.target.id === 'futo-numpad-backdrop') closeFutoNumpad();
+});
+
+/* ---------- Futoshiki: Direkteingabe (Regler "Eingabe" = Aus) ---------- */
+function buildFutoInlineNumpad(){
+  const el = document.getElementById('futo-inline-numpad');
+  el.innerHTML = '';
+  for(let v = 1; v <= futo.n; v++){
+    const b = document.createElement('button');
+    b.textContent = v;
+    b.addEventListener('click', () => markFutoInlineValue(v));
+    el.appendChild(b);
+  }
+  refreshFutoInlineMarks();
+}
+function markFutoInlineValue(value){
+  futo.markedValue = (futo.markedValue === value) ? null : value;
+  refreshFutoInlineMarks();
+}
+function refreshFutoInlineMarks(){
+  document.querySelectorAll('#futo-inline-numpad button').forEach(b => {
+    b.classList.toggle('marked', futo && futo.markedValue === Number(b.textContent));
+  });
+  document.getElementById('futo-inline-delete-btn').classList.toggle('marked', !!futo && futo.markedValue === 'delete');
+}
+document.getElementById('futo-inline-delete-btn').addEventListener('click', () => {
+  if(!futo) return;
+  futo.markedValue = (futo.markedValue === 'delete') ? null : 'delete';
+  refreshFutoInlineMarks();
+});
+function handleFutoCellTap(r, c, el){
+  if(futo.inputMode === 'direct'){
+    if(futo.markedValue === null || futo.markedValue === undefined) return;
+    futo.activeCell = { row:r, col:c, el };
+    setFutoCellValue(futo.markedValue === 'delete' ? 0 : futo.markedValue);
+  } else {
+    openFutoNumpad(r, c, el);
+  }
+}
+document.getElementById('futo-input-mode-checkbox').addEventListener('change', (e) => {
+  if(!futo) return;
+  futo.inputMode = e.target.checked ? 'popup' : 'direct';
+  setTogglePref('futoshiki', 'inputMode', futo.inputMode);
+  document.getElementById('futo-inline-input').classList.toggle('hidden', futo.inputMode === 'popup');
+  if(futo.inputMode === 'popup'){
+    futo.markedValue = null;
+    refreshFutoInlineMarks();
+  }
+});
+function updateFutoCheckButton(){
+  const complete = futo.values.every(row => row.every(v => v !== 0));
+  document.getElementById('btn-futo-check').disabled = !complete;
+}
+function abandonFutoshikiIfNeeded(){
+  if(futo && futo.hasInteracted && !futo.counted){
+    bumpStat('futoshiki', 'played');
+    futo.counted = true;
+  }
+  stopPuzzleTimer(futo);
+}
+document.getElementById('btn-futo-check').addEventListener('click', () => {
+  let allCorrect = true;
+  document.querySelectorAll('#futo-grid .futo-cell').forEach(cell => {
+    const r = +cell.dataset.row, c = +cell.dataset.col;
+    if(futo.given[r][c]) return;
+    const correct = futo.values[r][c] === futo.solution[r][c];
+    cell.classList.toggle('wrong', !correct);
+    if(!correct) allCorrect = false;
+  });
+  if(allCorrect && !futo.counted){
+    bumpStat('futoshiki', 'played');
+    bumpStat('futoshiki', 'won');
+    futo.counted = true;
+    stopPuzzleTimer(futo);
+    document.getElementById('success-text').textContent = 'Alle Zahlen und Ungleichungen stimmen. Stark gespielt!';
+    document.getElementById('success-overlay').classList.remove('hidden');
+  }
+});
+document.getElementById('btn-futo-new').addEventListener('click', () => {
+  abandonFutoshikiIfNeeded();
+  startFutoshiki(futo.level);
+});
+
+/* ============================================================
+   KAKURO
+   Ein Kreuzworträtsel aus Zahlen: schwarze Felder tragen die
+   Summen-Hinweise für den Zahlenlauf rechts bzw. darunter, weiße
+   Felder werden mit 1-9 gefüllt — innerhalb eines Laufs darf sich
+   keine Ziffer wiederholen und die Summe muss stimmen. Die Füllung
+   nutzt Backtracking mit "meist eingeschränkte Zelle zuerst"
+   (MRV-Heuristik) und einem Schrittlimit, weil reines Backtracking
+   bei größeren Rastern sonst hängen bleiben kann.
+   ============================================================ */
+let kakuro = null; // { level, size, grid, runs, solution, clue, values, cellSize, hasInteracted, counted, activeCell }
+
+const KAKURO_LEVELS = [
+  { id:1, label:'Sehr leicht', desc:'7×7, entspannt',        size:7,  blackRatio:0.22, stepBudget:15000 },
+  { id:2, label:'Leicht',      desc:'9×9, locker',            size:9,  blackRatio:0.25, stepBudget:25000 },
+  { id:3, label:'Mittel',      desc:'11×11, mittel',          size:11, blackRatio:0.27, stepBudget:35000 },
+  { id:4, label:'Schwer',      desc:'12×12, anspruchsvoll',   size:12, blackRatio:0.29, stepBudget:45000 },
+  { id:5, label:'Experte',     desc:'13×13, echte Kopfnuss',  size:13, blackRatio:0.31, stepBudget:60000 },
+];
+
+function renderKakuroLevelsList(){
+  document.getElementById('levels-title').textContent = 'Kakuro';
+  document.getElementById('mine-custom-panel').classList.add('hidden');
+  const list = document.getElementById('levels-list');
+  list.innerHTML = '';
+  KAKURO_LEVELS.forEach(lv => {
+    const btn = document.createElement('button');
+    btn.className = 'level-btn';
+    const dots = Array.from({length:KAKURO_LEVELS.length}, (_,i) => `<span class="${i < lv.id ? 'on' : ''}"></span>`).join('');
+    btn.innerHTML = `
+      <div class="dots">${dots}</div>
+      <div class="label"><b>${lv.label}</b><small>${lv.desc}</small></div>
+      <div class="arrow">›</div>`;
+    btn.addEventListener('click', () => startKakuro(lv));
+    list.appendChild(btn);
+  });
+}
+
+// Erzeugt schwarz/weiß-Layout; Läufe der Länge 1 werden zu schwarz
+// gemacht, da sie in Kakuro nicht erlaubt sind (kein sinnvoller Lauf).
+function kakuroGenerateLayout(size, blackRatio){
+  const grid = Array.from({length:size}, () => Array(size).fill('white'));
+  for(let c = 0; c < size; c++) grid[0][c] = 'black';
+  for(let r = 0; r < size; r++) grid[r][0] = 'black';
+  for(let r = 1; r < size; r++){
+    for(let c = 1; c < size; c++){
+      if(Math.random() < blackRatio) grid[r][c] = 'black';
+    }
+  }
+  let changed = true, guard = 0;
+  while(changed && guard < 10){
+    changed = false; guard++;
+    for(let r = 1; r < size; r++){
+      for(let c = 1; c < size; c++){
+        if(grid[r][c] !== 'white') continue;
+        const leftBlack = grid[r][c-1] === 'black';
+        const rightWhite = c+1 < size && grid[r][c+1] === 'white';
+        const horizLen1 = leftBlack && !rightWhite;
+        const topBlack = grid[r-1][c] === 'black';
+        const bottomWhite = r+1 < size && grid[r+1][c] === 'white';
+        const vertLen1 = topBlack && !bottomWhite;
+        if(horizLen1 && vertLen1){ grid[r][c] = 'black'; changed = true; }
+      }
+    }
+  }
+  return grid;
+}
+function kakuroGetRuns(grid, size){
+  const runs = [];
+  for(let r = 1; r < size; r++){
+    let run = [];
+    for(let c = 1; c <= size; c++){
+      const isWhite = c < size && grid[r][c] === 'white';
+      if(isWhite) run.push({r,c});
+      else { if(run.length >= 2) runs.push({ cells:run.slice(), horizontal:true }); run = []; }
+    }
+  }
+  for(let c = 1; c < size; c++){
+    let run = [];
+    for(let r = 1; r <= size; r++){
+      const isWhite = r < size && grid[r][c] === 'white';
+      if(isWhite) run.push({r,c});
+      else { if(run.length >= 2) runs.push({ cells:run.slice(), horizontal:false }); run = []; }
+    }
+  }
+  return runs;
+}
+// Backtracking mit MRV-Heuristik (immer die am stärksten eingeschränkte
+// Zelle zuerst) plus Schrittlimit, damit ein aussichtsloses Layout
+// schnell abgebrochen und neu versucht wird statt die App zu blockieren.
+function kakuroFill(grid, size, runs, stepBudget){
+  const board = Array.from({length:size}, () => Array(size).fill(0));
+  const cellRuns = new Map();
+  runs.forEach((run, idx) => {
+    run.cells.forEach(({r,c}) => {
+      const key = r+','+c;
+      if(!cellRuns.has(key)) cellRuns.set(key, []);
+      cellRuns.get(key).push(idx);
+    });
+  });
+  const whiteCells = [];
+  for(let r = 1; r < size; r++) for(let c = 1; c < size; c++) if(grid[r][c] === 'white') whiteCells.push({r,c});
+  const remaining = new Set(whiteCells.map(({r,c}) => r+','+c));
+
+  function candidatesFor(r, c){
+    const myRuns = cellRuns.get(r+','+c) || [];
+    const used = new Set();
+    myRuns.forEach(idx => runs[idx].cells.forEach(cell => { const v = board[cell.r][cell.c]; if(v !== 0) used.add(v); }));
+    const out = [];
+    for(let v = 1; v <= 9; v++) if(!used.has(v)) out.push(v);
+    return out;
+  }
+  let steps = 0;
+  function pickNext(){
+    let best = null, bestCount = 10;
+    for(const key of remaining){
+      const [r,c] = key.split(',').map(Number);
+      const cands = candidatesFor(r,c);
+      if(cands.length < bestCount){ bestCount = cands.length; best = {r,c,cands}; if(bestCount <= 1) break; }
+    }
+    return best;
+  }
+  function backtrack(){
+    steps++;
+    if(steps > stepBudget) return false;
+    if(remaining.size === 0) return true;
+    const next = pickNext();
+    if(!next || next.cands.length === 0) return false;
+    const { r, c, cands } = next;
+    const key = r+','+c;
+    remaining.delete(key);
+    const order = shuffle(cands.slice());
+    for(const v of order){
+      board[r][c] = v;
+      if(backtrack()) return true;
+      board[r][c] = 0;
+    }
+    remaining.add(key);
+    return false;
+  }
+  return backtrack() ? board : null;
+}
+function generateKakuroPuzzle(size, blackRatio, stepBudget){
+  for(let attempt = 0; attempt < 15; attempt++){
+    const grid = kakuroGenerateLayout(size, blackRatio);
+    const runs = kakuroGetRuns(grid, size);
+    let whiteCount = 0;
+    for(let r = 1; r < size; r++) for(let c = 1; c < size; c++) if(grid[r][c] === 'white') whiteCount++;
+    if(whiteCount < (size-1)*(size-1)*0.3) continue;
+    const board = kakuroFill(grid, size, runs, stepBudget);
+    if(board) return { size, grid, runs, board };
+  }
+  // Fallback mit größerem Budget, damit in jedem Fall ein spielbares Rätsel entsteht
+  const grid = kakuroGenerateLayout(size, blackRatio);
+  const runs = kakuroGetRuns(grid, size);
+  const board = kakuroFill(grid, size, runs, stepBudget * 3) || Array.from({length:size}, () => Array(size).fill(1));
+  return { size, grid, runs, board };
+}
+function kakuroComputeClues(grid, size, runs, board){
+  const clue = Array.from({length:size}, () => Array.from({length:size}, () => ({ right:null, down:null })));
+  runs.forEach(run => {
+    const sum = run.cells.reduce((s, {r,c}) => s + board[r][c], 0);
+    const first = run.cells[0];
+    if(run.horizontal) clue[first.r][first.c - 1].right = sum;
+    else clue[first.r - 1][first.c].down = sum;
+  });
+  return clue;
+}
+function kakuroCellSizeFor(size){
+  const referenceWidth = 360;
+  return Math.max(24, Math.min(42, Math.floor(referenceWidth / size)));
+}
+function buildKakuroNumpad(){
+  const el = document.getElementById('kakuro-numpad');
+  if(el.children.length) return; // Ziffern 1-9 sind immer gleich, nur einmal aufbauen
+  for(let v = 1; v <= 9; v++){
+    const b = document.createElement('button');
+    b.textContent = v;
+    b.addEventListener('click', () => setKakuroCellValue(v));
+    el.appendChild(b);
+  }
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'clear-btn';
+  clearBtn.textContent = 'Feld leeren';
+  clearBtn.addEventListener('click', () => setKakuroCellValue(0));
+  el.appendChild(clearBtn);
+}
+function startKakuro(level){
+  activeGameId = 'kakuro';
+  stopPuzzleTimer(kakuro); // eventuell noch laufendes Intervall des vorherigen Rätsels beenden
+  const puzzle = generateKakuroPuzzle(level.size, level.blackRatio, level.stepBudget);
+  const clue = kakuroComputeClues(puzzle.grid, puzzle.size, puzzle.runs, puzzle.board);
+  const savedInputModeKakuro = getTogglePref('kakuro', 'inputMode', 'popup');
+  kakuro = {
+    level, size: puzzle.size,
+    grid: puzzle.grid, runs: puzzle.runs, solution: puzzle.board, clue,
+    values: Array.from({length:puzzle.size}, () => Array(puzzle.size).fill(0)),
+    cellSize: kakuroCellSizeFor(puzzle.size),
+    hasInteracted:false, counted:false, activeCell:null,
+    inputMode: savedInputModeKakuro, markedValue: null,
+    startTime: null, timerInterval: null, elapsedSeconds: 0,
+  };
+  document.getElementById('kakuro-level-chip').textContent = starsFor(level.id);
+  refreshHintButton('btn-kakuro-hint', 'kakuro-hint-count', 'kakuro');
+  resetRevealLink('btn-kakuro-reveal');
+  document.getElementById('kakuro-input-mode-checkbox').checked = (savedInputModeKakuro === 'popup');
+  document.getElementById('kakuro-inline-input').classList.toggle('hidden', savedInputModeKakuro === 'popup');
+  startPuzzleTimer(kakuro, 'kakuro-timer');
+  buildKakuroNumpad();
+  buildKakuroInlineNumpad();
+  renderKakuroBoard();
+  updateKakuroCheckButton();
+  showScreen('kakuro');
+}
+function renderKakuroBoard(){
+  const grid = document.getElementById('kakuro-grid');
+  grid.innerHTML = '';
+  const size = kakuro.size, cs = kakuro.cellSize;
+  grid.style.gridTemplateColumns = `repeat(${size}, ${cs}px)`;
+  const frag = document.createDocumentFragment();
+  for(let r = 0; r < size; r++){
+    for(let c = 0; c < size; c++){
+      const el = document.createElement('div');
+      el.style.width = cs + 'px'; el.style.height = cs + 'px';
+      if(kakuro.grid[r][c] === 'black'){
+        const cl = kakuro.clue[r][c];
+        if(cl.right === null && cl.down === null){
+          el.className = 'kakuro-clue empty';
+        } else {
+          el.className = 'kakuro-clue';
+          const clueFontSize = Math.max(10, Math.floor(cs * 0.26)) + 'px';
+          if(cl.down !== null){
+            const d = document.createElement('span'); d.className = 'down'; d.textContent = cl.down;
+            d.style.fontSize = clueFontSize;
+            el.appendChild(d);
+          }
+          if(cl.right !== null){
+            const rr = document.createElement('span'); rr.className = 'right'; rr.textContent = cl.right;
+            rr.style.fontSize = clueFontSize;
+            el.appendChild(rr);
+          }
+        }
+      } else {
+        el.className = 'kakuro-cell editable';
+        el.style.fontSize = Math.max(11, Math.floor(cs * 0.5)) + 'px';
+        el.dataset.row = r; el.dataset.col = c;
+        const val = kakuro.values[r][c];
+        el.textContent = val === 0 ? '' : val;
+        el.addEventListener('click', () => handleKakuroCellTap(r, c, el));
+      }
+      frag.appendChild(el);
+    }
+  }
+  grid.appendChild(frag);
+}
+function openKakuroNumpad(r, c, el){
+  kakuro.activeCell = { row:r, col:c, el };
+  document.querySelectorAll('#kakuro-grid .kakuro-cell.selected').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('kakuro-numpad-backdrop').classList.remove('hidden');
+  document.getElementById('kakuro-toggle-strip').classList.add('toggles-locked');
+}
+function closeKakuroNumpad(){
+  document.getElementById('kakuro-numpad-backdrop').classList.add('hidden');
+  document.getElementById('kakuro-toggle-strip').classList.remove('toggles-locked');
+  if(kakuro.activeCell) kakuro.activeCell.el.classList.remove('selected');
+}
+function setKakuroCellValue(v){
+  const { row, col, el } = kakuro.activeCell;
+  kakuro.values[row][col] = v;
+  kakuro.hasInteracted = true;
+  el.textContent = v === 0 ? '' : v;
+  el.classList.remove('wrong');
+  closeKakuroNumpad();
+  updateKakuroCheckButton();
+}
+document.getElementById('kakuro-numpad-backdrop').addEventListener('click', (e) => {
+  if(e.target.id === 'kakuro-numpad-backdrop') closeKakuroNumpad();
+});
+
+/* ---------- Kakuro: Direkteingabe (Regler "Eingabe" = Aus) ---------- */
+function buildKakuroInlineNumpad(){
+  const el = document.getElementById('kakuro-inline-numpad');
+  el.innerHTML = '';
+  for(let v = 1; v <= 9; v++){
+    const b = document.createElement('button');
+    b.textContent = v;
+    b.addEventListener('click', () => markKakuroInlineValue(v));
+    el.appendChild(b);
+  }
+  refreshKakuroInlineMarks();
+}
+function markKakuroInlineValue(value){
+  kakuro.markedValue = (kakuro.markedValue === value) ? null : value;
+  refreshKakuroInlineMarks();
+}
+function refreshKakuroInlineMarks(){
+  document.querySelectorAll('#kakuro-inline-numpad button').forEach(b => {
+    b.classList.toggle('marked', kakuro && kakuro.markedValue === Number(b.textContent));
+  });
+  document.getElementById('kakuro-inline-delete-btn').classList.toggle('marked', !!kakuro && kakuro.markedValue === 'delete');
+}
+document.getElementById('kakuro-inline-delete-btn').addEventListener('click', () => {
+  if(!kakuro) return;
+  kakuro.markedValue = (kakuro.markedValue === 'delete') ? null : 'delete';
+  refreshKakuroInlineMarks();
+});
+function handleKakuroCellTap(r, c, el){
+  if(kakuro.inputMode === 'direct'){
+    if(kakuro.markedValue === null || kakuro.markedValue === undefined) return;
+    kakuro.activeCell = { row:r, col:c, el };
+    setKakuroCellValue(kakuro.markedValue === 'delete' ? 0 : kakuro.markedValue);
+  } else {
+    openKakuroNumpad(r, c, el);
+  }
+}
+document.getElementById('kakuro-input-mode-checkbox').addEventListener('change', (e) => {
+  if(!kakuro) return;
+  kakuro.inputMode = e.target.checked ? 'popup' : 'direct';
+  setTogglePref('kakuro', 'inputMode', kakuro.inputMode);
+  document.getElementById('kakuro-inline-input').classList.toggle('hidden', kakuro.inputMode === 'popup');
+  if(kakuro.inputMode === 'popup'){
+    kakuro.markedValue = null;
+    refreshKakuroInlineMarks();
+  }
+});
+
+function updateKakuroCheckButton(){
+  let complete = true;
+  for(let r = 0; r < kakuro.size; r++){
+    for(let c = 0; c < kakuro.size; c++){
+      if(kakuro.grid[r][c] === 'white' && kakuro.values[r][c] === 0) complete = false;
+    }
+  }
+  document.getElementById('btn-kakuro-check').disabled = !complete;
+}
+function abandonKakuroIfNeeded(){
+  if(kakuro && kakuro.hasInteracted && !kakuro.counted){
+    bumpStat('kakuro', 'played');
+    kakuro.counted = true;
+  }
+  stopPuzzleTimer(kakuro);
+}
+document.getElementById('btn-kakuro-check').addEventListener('click', () => {
+  let allCorrect = true;
+  document.querySelectorAll('#kakuro-grid .kakuro-cell').forEach(cell => {
+    const r = +cell.dataset.row, c = +cell.dataset.col;
+    const correct = kakuro.values[r][c] === kakuro.solution[r][c];
+    cell.classList.toggle('wrong', !correct);
+    if(!correct) allCorrect = false;
+  });
+  if(allCorrect && !kakuro.counted){
+    bumpStat('kakuro', 'played');
+    bumpStat('kakuro', 'won');
+    kakuro.counted = true;
+    stopPuzzleTimer(kakuro);
+    document.getElementById('success-text').textContent = 'Alle Summen und Läufe stimmen. Stark gespielt!';
+    document.getElementById('success-overlay').classList.remove('hidden');
+  }
+});
+document.getElementById('btn-kakuro-new').addEventListener('click', () => {
+  abandonKakuroIfNeeded();
+  startKakuro(kakuro.level);
+});
+
+/* ============================================================
+   TIPPS & LÖSUNG ANZEIGEN — für alle 5 Logikspiele mit eigenem
+   Zahlenraster. Ein Tipp füllt genau EIN Feld korrekt aus und zählt
+   ganz normal weiter zum Rätsel (max. 3 je Spiel und Tag, siehe
+   Tipp-System oben). "Lösung anzeigen" füllt dagegen alles auf
+   einmal aus und markiert das Rätsel bewusst NICHT als gelöst
+   (es wird nur als Fehlversuch in die Statistik übernommen, sofern
+   noch nicht anderweitig gezählt).
+   ============================================================ */
+function useSudokuHint(){
+  if(!game) return;
+  const key = game.statsKey;
+  if(getHintsRemaining(key) <= 0) return;
+  const empty = [];
+  for(let r = 0; r < 9; r++){
+    for(let c = 0; c < 9; c++){
+      if(game.puzzle[r][c] === 0 && game.values[r][c] !== game.solution[r][c]) empty.push([r,c]);
+    }
+  }
+  if(!empty.length) return;
+  const [r,c] = empty[Math.floor(Math.random() * empty.length)];
+  game.values[r][c] = game.solution[r][c];
+  game.hasInteracted = true;
+  consumeHint(key);
+  renderGrid();
+  updateCheckButton();
+  refreshHintButton('btn-game-hint', 'game-hint-count', key);
+}
+function revealSudokuSolution(){
+  if(!game) return;
+  for(let r = 0; r < 9; r++) for(let c = 0; c < 9; c++) game.values[r][c] = game.solution[r][c];
+  game.hasInteracted = true;
+  if(!game.counted){
+    bumpStat(game.statsKey, 'played');
+    game.counted = true;
+  }
+  stopPuzzleTimer(game);
+  renderGrid();
+  updateCheckButton();
+  const btn = document.getElementById('btn-game-reveal');
+  btn.textContent = 'Lösung angezeigt — zählt nicht als gelöst';
+  btn.disabled = true;
+}
+document.getElementById('btn-game-hint').addEventListener('click', useSudokuHint);
+document.getElementById('cage-style-checkbox').addEventListener('change', (e) => {
+  if(!game || !game.cages) return;
+  // Wechselt nur die Darstellung — Werte, Timer, Statistik-Zähler und der
+  // Rätselfortschritt bleiben komplett unangetastet, es wird nur neu
+  // gezeichnet (kein Neustart, keine Unterbrechung). Die Wahl wird
+  // dauerhaft pro Spiel gespeichert, damit sie beim nächsten Öffnen erhalten bleibt.
+  game.cageStyle = e.target.checked ? 'fill' : 'lines';
+  setTogglePref(game.statsKey, 'cageStyle', game.cageStyle);
+  renderGrid();
+});
+document.getElementById('btn-game-reveal').addEventListener('click', revealSudokuSolution);
+
+function useHashiHint(){
+  if(!hashi) return;
+  if(getHintsRemaining('hashi') <= 0) return;
+  const mismatched = hashi.solutionBridges.filter(b => (hashi.userBridges.get(hashiPairKey(b.a,b.b)) || 0) !== b.count);
+  if(!mismatched.length) return;
+  const pick = mismatched[Math.floor(Math.random() * mismatched.length)];
+  hashi.userBridges.set(hashiPairKey(pick.a, pick.b), pick.count);
+  hashi.hasInteracted = true;
+  consumeHint('hashi');
+  renderHashi();
+  updateHashiCheckButton();
+  refreshHintButton('btn-hashi-hint', 'hashi-hint-count', 'hashi');
+}
+function revealHashiSolution(){
+  if(!hashi) return;
+  hashi.userBridges = new Map();
+  hashi.solutionBridges.forEach(b => hashi.userBridges.set(hashiPairKey(b.a, b.b), b.count));
+  hashi.hasInteracted = true;
+  if(!hashi.counted){
+    bumpStat('hashi', 'played');
+    hashi.counted = true;
+  }
+  stopPuzzleTimer(hashi);
+  renderHashi();
+  updateHashiCheckButton();
+  const btn = document.getElementById('btn-hashi-reveal');
+  btn.textContent = 'Lösung angezeigt — zählt nicht als gelöst';
+  btn.disabled = true;
+}
+document.getElementById('btn-hashi-hint').addEventListener('click', useHashiHint);
+document.getElementById('btn-hashi-reveal').addEventListener('click', revealHashiSolution);
+
+function useFutoHint(){
+  if(!futo) return;
+  if(getHintsRemaining('futoshiki') <= 0) return;
+  const empty = [];
+  for(let r = 0; r < futo.n; r++){
+    for(let c = 0; c < futo.n; c++){
+      if(!futo.given[r][c] && futo.values[r][c] !== futo.solution[r][c]) empty.push([r,c]);
+    }
+  }
+  if(!empty.length) return;
+  const [r,c] = empty[Math.floor(Math.random() * empty.length)];
+  futo.values[r][c] = futo.solution[r][c];
+  futo.hasInteracted = true;
+  consumeHint('futoshiki');
+  renderFutoshikiBoard();
+  updateFutoCheckButton();
+  refreshHintButton('btn-futo-hint', 'futo-hint-count', 'futoshiki');
+}
+function revealFutoshikiSolution(){
+  if(!futo) return;
+  for(let r = 0; r < futo.n; r++) for(let c = 0; c < futo.n; c++) futo.values[r][c] = futo.solution[r][c];
+  futo.hasInteracted = true;
+  if(!futo.counted){
+    bumpStat('futoshiki', 'played');
+    futo.counted = true;
+  }
+  stopPuzzleTimer(futo);
+  renderFutoshikiBoard();
+  updateFutoCheckButton();
+  const btn = document.getElementById('btn-futo-reveal');
+  btn.textContent = 'Lösung angezeigt — zählt nicht als gelöst';
+  btn.disabled = true;
+}
+document.getElementById('btn-futo-hint').addEventListener('click', useFutoHint);
+document.getElementById('btn-futo-reveal').addEventListener('click', revealFutoshikiSolution);
+
+function useKakuroHint(){
+  if(!kakuro) return;
+  if(getHintsRemaining('kakuro') <= 0) return;
+  const empty = [];
+  for(let r = 0; r < kakuro.size; r++){
+    for(let c = 0; c < kakuro.size; c++){
+      if(kakuro.grid[r][c] === 'white' && kakuro.values[r][c] !== kakuro.solution[r][c]) empty.push([r,c]);
+    }
+  }
+  if(!empty.length) return;
+  const [r,c] = empty[Math.floor(Math.random() * empty.length)];
+  kakuro.values[r][c] = kakuro.solution[r][c];
+  kakuro.hasInteracted = true;
+  consumeHint('kakuro');
+  renderKakuroBoard();
+  updateKakuroCheckButton();
+  refreshHintButton('btn-kakuro-hint', 'kakuro-hint-count', 'kakuro');
+}
+function revealKakuroSolution(){
+  if(!kakuro) return;
+  for(let r = 0; r < kakuro.size; r++){
+    for(let c = 0; c < kakuro.size; c++){
+      if(kakuro.grid[r][c] === 'white') kakuro.values[r][c] = kakuro.solution[r][c];
+    }
+  }
+  kakuro.hasInteracted = true;
+  if(!kakuro.counted){
+    bumpStat('kakuro', 'played');
+    kakuro.counted = true;
+  }
+  stopPuzzleTimer(kakuro);
+  renderKakuroBoard();
+  updateKakuroCheckButton();
+  const btn = document.getElementById('btn-kakuro-reveal');
+  btn.textContent = 'Lösung angezeigt — zählt nicht als gelöst';
+  btn.disabled = true;
+}
+document.getElementById('btn-kakuro-hint').addEventListener('click', useKakuroHint);
+document.getElementById('btn-kakuro-reveal').addEventListener('click', revealKakuroSolution);
+
+/* ============================================================
+   START
+   ============================================================ */
+if(state.profileName){
+  enterHome();
+} else {
+  showScreen('profile');
+}
+</script>
+</body>
+</html>
