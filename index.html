@@ -36,6 +36,7 @@
     <div class="topbar">
       <div class="greeting"></div>
       <div style="display:flex; gap:8px;">
+        <button class="icon-btn" id="btn-stats" data-i18n-title="stats.icon" title="Statistik">📊</button>
         <button class="icon-btn" id="btn-profile-settings" data-i18n-title="profile.settingsIcon" title="Profil">👤</button>
         <button class="icon-btn" id="btn-lang-panel" data-i18n-title="home.langPanelIcon" title="Sprache">🌐</button>
         <button class="icon-btn" id="btn-dev-panel" data-i18n-title="home.devPanelIcon" title="Eigenschaften">⚙️</button>
@@ -91,6 +92,36 @@
 
       <button class="btn block" id="btn-profile-settings-save" data-i18n="profile.save">Speichern</button>
     </div>
+  </section>
+
+  <!--
+    Statistikoberfläche (Backlog Punkt 18). Bewusst minimalistisch,
+    reine Text-/Listendarstellung im bestehenden Stil (kein Diagramm,
+    nicht angefragt) — liest ausschließlich über core/stats-engine.js
+    aus dem echten Verlaufs-Log (core/attempts.js). Trends (10/50/100)
+    nur sichtbar, wenn ein konkretes Spiel UND eine Stufe gewählt sind
+    (Zeitvergleiche gelten laut Vorgabe nur je Spiel+Stufe).
+  -->
+  <section id="screen-stats" class="hidden">
+    <div class="game-header">
+      <button class="icon-btn" id="btn-stats-back">←</button>
+      <h2 data-i18n="stats.title">Statistik</h2>
+      <span class="level-chip"></span>
+    </div>
+    <div class="stats-filters">
+      <label class="profile-settings-label" for="stats-filter-game" data-i18n="stats.filterGame">Spiel</label>
+      <select id="stats-filter-game" class="input-pill"></select>
+      <label class="profile-settings-label" for="stats-filter-difficulty" data-i18n="stats.filterDifficulty">Stufe</label>
+      <select id="stats-filter-difficulty" class="input-pill"></select>
+    </div>
+
+    <div class="stats-overview" id="stats-overview"></div>
+    <div class="stats-detail hidden" id="stats-detail"></div>
+    <p class="stats-hint hidden" id="stats-select-prompt" data-i18n="stats.selectDifficultyPrompt">Spiel und Stufe wählen, um Trends zu sehen.</p>
+    <div class="stats-trends" id="stats-trends"></div>
+
+    <button class="btn secondary block" id="btn-stats-export" data-i18n="stats.exportButton" style="margin-top:20px;">Testbericht exportieren (JSON)</button>
+    <p class="stats-hint hidden" id="stats-export-note" data-i18n="stats.exportedNote">Datei wurde heruntergeladen — bitte manuell an Drago senden.</p>
   </section>
 
   <!-- Sprachpanel: Platzhalter für spätere Sprachauswahl -->

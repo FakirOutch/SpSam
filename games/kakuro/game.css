@@ -44,3 +44,73 @@
   text-align:center; font-size:12.5px; color:var(--ink-soft);
   margin:14px 6px 0; line-height:1.5;
 }
+
+/* ---------- Feste Eingabereihe (Variante 2) — an Sudoku angeglichen ----------
+   Kakuro nutzt immer die Ziffern 1–9 unabhängig von der Rätselgröße,
+   daher keine Zentrierungs-Logik nötig (siehe Futoshiki für den
+   Fall mit variabler Ziffernanzahl). Farben, Abstände, Rundungen und
+   die endgültige Form des Löschfelds sind bewusst noch nicht final —
+   folgt in der späteren Designrunde. */
+.game-kakuro .inline-input{ margin-top:16px; }
+.game-kakuro .inline-input-row{
+  display:flex; flex-wrap:nowrap; gap:4px;
+  width:100%;
+}
+.game-kakuro .inline-input-row button{
+  flex:1 1 0; min-width:0; aspect-ratio:1;
+  border-radius:8px;
+  background:var(--surface-soft); color:var(--ink);
+  font-family:var(--font-display); font-weight:700; font-size:15px;
+  display:flex; align-items:center; justify-content:center;
+}
+.game-kakuro .inline-input-row button.marked{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:inset 0 0 0 2px var(--primary-dark);
+}
+.game-kakuro .inline-input-row [data-action="inline-delete"]{
+  background:var(--danger-bg); color:var(--danger-ink);
+  font-size:17px;
+}
+.game-kakuro .inline-input-row [data-action="inline-delete"].marked{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:inset 0 0 0 2px var(--primary-dark);
+}
+
+/* ---------- Notizzahlen/Kandidatenmodus (Backlog: Notizzahlen-Anpassung) ----------
+   Modul-eigenes Override statt Änderung der gemeinsamen .numpad-Basis in
+   style.css — siehe games/sudoku/game.css für die ausführliche Begründung. */
+.game-kakuro .numpad .note-toggle-btn{
+  grid-column:1; border-radius:50%; width:52px; height:52px;
+  background:var(--surface-soft); color:var(--ink-soft);
+  font-size:18px; box-shadow:var(--shadow-press);
+  display:flex; align-items:center; justify-content:center;
+}
+.game-kakuro .numpad .note-toggle-btn.active{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:var(--shadow-press), inset 0 0 0 2px var(--primary-dark);
+}
+.game-kakuro .numpad .clear-btn{ grid-column:2 / -1; }
+
+.game-kakuro .inline-input-toolbar{ display:flex; align-items:center; gap:8px; }
+.game-kakuro .inline-input-toolbar .inline-input-row{ flex:1 1 0; min-width:0; }
+.game-kakuro .note-mode-btn{
+  flex-shrink:0; width:37px; height:37px; border-radius:50%;
+  background:var(--surface-soft); color:var(--ink-soft); font-size:16px;
+  box-shadow:var(--shadow-soft);
+  display:flex; align-items:center; justify-content:center;
+}
+.game-kakuro .note-mode-btn.active{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:inset 0 0 0 2px var(--primary-dark);
+}
+
+.game-kakuro .kakuro-cell.has-candidates{ font-size:0; }
+.game-kakuro .candidate-grid{
+  display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(3, 1fr);
+  width:100%; height:100%; padding:1px;
+}
+.game-kakuro .candidate-slot{
+  display:flex; align-items:center; justify-content:center;
+  font-size:8px; font-weight:700; color:var(--ink-soft);
+  font-family:var(--font-body);
+}

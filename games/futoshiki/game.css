@@ -22,3 +22,80 @@
   text-align:center; font-size:12.5px; color:var(--ink-soft);
   margin:14px 6px 0; line-height:1.5;
 }
+
+/* ---------- Feste Eingabereihe (Variante 2) — an Sudoku angeglichen ----------
+   Besonderheit Futoshiki: die Ziffernzahl variiert mit der Rätselgröße
+   (5×5 bis 9×9, also 5 bis 9 Ziffern + Löschen = 6 bis 10 Felder).
+   Feldbreite wird deshalb bewusst IMMER anhand von 10 Feldern berechnet
+   (nicht anhand der tatsächlich vorhandenen Anzahl) — bei weniger
+   Ziffern bleiben die Felder dadurch gleich groß wie bei 9 Ziffern,
+   die Reihe wird einfach kürzer und über justify-content:center mittig
+   ausgerichtet, statt sich in die Breite zu strecken. Farben, Abstände,
+   Rundungen und die endgültige Form des Löschfelds sind bewusst noch
+   nicht final — folgt in der späteren Designrunde. */
+.game-futoshiki .inline-input{ margin-top:16px; }
+.game-futoshiki .inline-input-row{
+  display:flex; flex-wrap:nowrap; gap:4px; justify-content:center;
+  width:100%;
+}
+.game-futoshiki .inline-input-row button{
+  flex:0 0 calc((100% - 36px) / 10); min-width:0; aspect-ratio:1;
+  border-radius:8px;
+  background:var(--surface-soft); color:var(--ink);
+  font-family:var(--font-display); font-weight:700; font-size:15px;
+  display:flex; align-items:center; justify-content:center;
+}
+.game-futoshiki .inline-input-row button.marked{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:inset 0 0 0 2px var(--primary-dark);
+}
+.game-futoshiki .inline-input-row [data-action="inline-delete"]{
+  background:var(--danger-bg); color:var(--danger-ink);
+  font-size:17px;
+}
+.game-futoshiki .inline-input-row [data-action="inline-delete"].marked{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:inset 0 0 0 2px var(--primary-dark);
+}
+
+/* ---------- Notizzahlen/Kandidatenmodus (Backlog: Notizzahlen-Anpassung) ----------
+   Modul-eigenes Override statt Änderung der gemeinsamen .numpad-Basis in
+   style.css — siehe games/sudoku/game.css für die ausführliche Begründung.
+   Besonderheit Futoshiki: Kandidatenraster hat IMMER 3 Spalten, aber eine
+   je Stufe unterschiedliche Zeilenzahl (game.n Slots, nicht fix 9) —
+   grid-auto-flow übernimmt das automatisch ohne JS-Vorberechnung. */
+.game-futoshiki .numpad .note-toggle-btn{
+  grid-column:1; border-radius:50%; width:52px; height:52px;
+  background:var(--surface-soft); color:var(--ink-soft);
+  font-size:18px; box-shadow:var(--shadow-press);
+  display:flex; align-items:center; justify-content:center;
+}
+.game-futoshiki .numpad .note-toggle-btn.active{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:var(--shadow-press), inset 0 0 0 2px var(--primary-dark);
+}
+.game-futoshiki .numpad .clear-btn{ grid-column:2 / -1; }
+
+.game-futoshiki .inline-input-toolbar{ display:flex; align-items:center; gap:8px; }
+.game-futoshiki .inline-input-toolbar .inline-input-row{ flex:1 1 0; min-width:0; }
+.game-futoshiki .note-mode-btn{
+  flex-shrink:0; width:37px; height:37px; border-radius:50%;
+  background:var(--surface-soft); color:var(--ink-soft); font-size:16px;
+  box-shadow:var(--shadow-soft);
+  display:flex; align-items:center; justify-content:center;
+}
+.game-futoshiki .note-mode-btn.active{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:inset 0 0 0 2px var(--primary-dark);
+}
+
+.game-futoshiki .futo-cell.has-candidates{ font-size:0; }
+.game-futoshiki .candidate-grid{
+  display:grid; grid-template-columns:repeat(3, 1fr); grid-auto-rows:1fr;
+  width:100%; height:100%; padding:1px;
+}
+.game-futoshiki .candidate-slot{
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; font-weight:700; color:var(--ink-soft);
+  font-family:var(--font-body);
+}

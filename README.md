@@ -531,3 +531,186 @@ vorgegebenen Enum nicht).
 Statistikoberfläche) und Punkt 19 (10/50/100-Vergleiche) — die Erfassung
 läuft bereits vollständig und liefert ab sofort verwertbare Rohdaten,
 nur eine Anzeige dafür existiert noch nicht.
+
+## Feste Eingabereihe: Kakuro und Futoshiki an Sudoku angeglichen
+
+Beide Module hatten bislang noch die alte Optik (3-spaltiges Raster +
+separater Löschen-Button unterhalb) für die feste Zahlenreihe, während
+Sudoku/Killer Sudoku/Thermo Sudoku bereits die einzeilige Reihe mit
+integriertem Löschfeld nutzten. Jetzt vereinheitlicht:
+
+- Markup/JS auf das Sudoku-Muster umgestellt (`.inline-input-row`,
+  Löschfeld als zehntes dynamisches Element statt statischer Button).
+- Dabei einen echten, vorher unbemerkten Fehler gefunden und behoben:
+  Futoshikis alter `bindEvents()`-Handler für den Löschen-Button
+  griff ins Leere, da `buildInlineNumpad()` bei Futoshiki (anders als
+  bei den anderen Modulen) erst in `applyGameToUi()` läuft, also nach
+  `bindEvents()` — der Button existierte zum Bindungszeitpunkt noch gar
+  nicht. Unschädlich, weil der Button vorher statisches Markup war;
+  wurde beim Umbau auf die neue Struktur entfernt (der dynamisch
+  erzeugte Button bringt seinen eigenen Klick-Handler gleich mit).
+- Verwaisten Key `common.deleteNumber` entfernt (Löschfeld zeigt jetzt
+  überall nur noch das ⌫-Symbol, keinen Text mehr).
+
+**Futoshiki-Besonderheit (Rätselgröße variiert 5×5–9×9, also 5–9
+Ziffern statt immer 9):** Feldbreite wird bewusst anhand von zehn
+Slots berechnet (`flex:0 0 calc((100% - 36px) / 10)`), unabhängig von
+der tatsächlich vorhandenen Anzahl — bei weniger Ziffern bleiben die
+Felder exakt gleich groß wie im 9er-Fall, die Reihe wird stattdessen
+kürzer und über `justify-content:center` mittig ausgerichtet, statt
+sich in die Breite zu strecken. Kakuro braucht diese Sonderbehandlung
+nicht (immer exakt 9 Ziffern unabhängig von der Rastergröße).
+
+**Getestet:** Kakuro (10 Felder, volle Breite, alter separater
+Löschen-Button weg), Futoshiki bei 9×9 (10 Felder, volle Breite, wie
+Sudoku) und bei 5×5 (6 Felder, exakt gleiche Feldgröße wie im 9er-Fall,
+links/rechts auf die Nachkommastelle gleich große Ränder). Vollständiger
+Regressionslauf (i18n, Modul-Konformität, Unit-Tests, Punkt-17-Attempts)
+weiterhin grün.
+
+## Backlog Punkt 18–21 — Statistikblock (Oberfläche, Trends, Testdaten, Export)
+
+Reihenfolge wie vom Nutzer vorgegeben: 20 → 19 → 18 → 21.
+
+**Punkt 20 — deterministische Testdaten:** `scripts/attempts-fixtures.mjs`.
+Reiner Datengenerator (mulberry32-Pseudozufall mit festem Seed, kein
+`Math.random()`), erzeugt Versuchs-Datensätze im exakten Schema von
+`core/attempts.js`. Fasst den echten Log (`arkimis_attempts_v1`) an
+KEINER Stelle an — Testskripte übergeben die erzeugten Arrays direkt an
+die Berechnungsfunktionen, ohne Umweg über `localStorage`. 9 definierte
+Grenzfälle: 19-von-20 und 99-von-100 (jeweils knapp zu wenig), genau
+20/100/200 (jeweils genau ausreichend), alle Versuche über 2 Stunden,
+niemand gelöst, deutliche Geschwindigkeitsverbesserung,
+Vermischungsschutz über mehrere Spiele/Stufen.
+
+**Punkt 19 — Berechnungslogik:** `core/stats-engine.js`. Reine
+Funktionen (`computeOverview`, `computeDifficultyStats`, `computeTrend`,
+`computeAllTrends`) — nehmen ein Versuchs-Array + Filter entgegen, kein
+eigener Zustand. Dadurch mit echtem Log UND Testdaten nutzbar, ohne dass
+beide je vermischt werden könnten. Alle vorgegebenen Regeln umgesetzt:
+Zeitvergleiche nur innerhalb desselben Spiels und derselben Stufe;
+`timingEligible:false` fließt nicht in Zeitdurchschnitt/
+Geschwindigkeitsvergleich, zählt aber normal bei gespielt/gelöst/nicht
+gelöst; `revealed` zählt als gespielt, nicht als gelöst; `enoughData`-
+Flag statt stiller Falschanzeige bei zu wenig Daten (2×Fenstergröße
+nötig: 20/100/200 Versuche für 10er/50er/100er-Vergleich).
+`scripts/test-stats-engine.mjs` — 30 Prüfungen gegen die Punkt-20-
+Testdaten, alle grün.
+
+**Punkt 18 — Statistikoberfläche:** neuer Screen (`#screen-stats`),
+erreichbar über ein 📊-Icon in der Topbar. Bewusst minimalistisch, reine
+Text-/Listendarstellung im bestehenden Kartenstil (kein Diagramm, nicht
+angefragt). Spiel-Filter (alle sieben ladbaren Module) + Stufen-Filter
+(dynamisch befüllt: 1–5 für die sechs Standardspiele, die vier
+Minesweeper-Schwierigkeitsgrade für Minesweeper). Ohne Spiel+Stufen-Wahl
+nur Gesamtübersicht (gespielt/gelöst/Lösungsrate); mit konkreter Wahl
+zusätzlich Detailwerte und alle drei Trendkarten (10/50/100), die bei zu
+wenig Daten "Noch nicht genügend Daten" statt eines falschen Werts
+zeigen. Liest ausschließlich über `core/stats-engine.js` aus dem echten
+Log (`core/attempts.getAllAttempts()`).
+
+**Punkt 21 — Testbericht-Export:** Button auf der Statistikseite,
+erzeugt `arkimis-test-report-YYYY-MM-DD.json` als Browser-Download
+(Blob-URL, kein Server). Enthält Rohdaten (`rawAttempts`) und berechnete
+Werte (`overview`, `perGame`). `profileId` wird beim Export bewusst aus
+jedem Datensatz entfernt (Vorgabe: kein Profilname/keine persönliche
+ID) — im internen Log dient das Feld nur der künftigen
+Mehrprofil-Vorbereitung, nicht dem Export.
+
+**Dabei gefunden und behoben:** `scripts/check-i18n-keys.mjs` erkannte
+dynamisch per Template-Literal zusammengesetzte `t()`-Aufrufe
+(`` t(`game.minesweeper.difficulties.${difficulty}.label`) ``, neu für
+den Stufen-Filter) fälschlich als fehlenden Key — die eigentlichen vier
+Keys existieren und sind über die bereits bestehende `labelKey`-Zuweisung
+in `games/minesweeper/game.js` korrekt als verwendet erfasst. Prüfskript
+überspringt jetzt Treffer mit `${` (echte Laufzeit-Interpolation, nicht
+statisch auflösbar) statt sie als Fehler zu werten.
+
+**Getestet:** Playwright, injizierte Punkt-20-Testdaten (25 Sudoku-
+Stufe-3-Versuche — reicht für den 10er-, nicht für den 50er/100er-Trend):
+Filter-Zusammenspiel, Übersicht/Detail-Werte korrekt, alle drei
+Trendkarten zeigen den erwarteten `enoughData`-Zustand, Export ohne
+`profileId`, mit vollständigen Rohdaten und berechneten Werten.
+Vollständiger Regressionslauf (i18n, Modul-Konformität, alle
+Unit-Tests, Punkt 8/10/17) weiterhin grün.
+
+**Bewusst nicht angefasst:** keine weiteren Backlogpunkte nebenbei
+umgesetzt (Vorgabe). Farben/Feinschliff der neuen Oberfläche bewusst
+im bestehenden, noch nicht finalen Design-Zwischenstand gehalten.
+
+## Notizzahlen/Kandidatenmodus (Etappe A) — für alle Zahlenspiele außer Hashi
+
+Umgesetzt für Sudoku (Referenz), Kakuro, Futoshiki, Killer Sudoku,
+Thermo Sudoku. Hashi bewusst unverändert (keine Zahleneingabe,
+Brücken-Mechanik). Minesweeper betrifft dies ebenfalls nicht.
+
+**Architektur — strikt modular, wie vorgegeben:** keine zentrale
+Numpad-/Kandidaten-Komponente über mehrere Spiele hinweg. Jedes Modul
+hat seine eigene `toggleCandidate()`/`clearCandidates()`/
+`renderCellContent()`-Implementierung, auch wenn sich das Muster stark
+ähnelt — bewusste Kopie statt gemeinsamer Abstraktion, exakt wie im
+Handoff gefordert.
+
+**Verhalten (in allen fünf Modulen identisch):**
+- Neuer Umschalter (✏️, vorläufiges Symbol) — im Popup unten links als
+  1×1-Feld, Löschfeld dafür auf 2×1 vergrößert; bei der festen Reihe
+  als eigener Button links daneben (nicht Teil der 10er-Flex-Reihe
+  selbst, damit die Zifferngröße unverändert bleibt).
+- Notizmodus AUS: Zahl wird normal gesetzt (unverändertes Verhalten).
+- Notizmodus AN: mehrere Kandidaten gleichzeitig möglich, erneutes
+  Antippen entfernt nur die eine Zahl, Popup bleibt beim Notieren
+  offen (schließt nur beim Setzen eines echten Werts).
+- Eine gesetzte Lösungszahl verwirft automatisch alle Kandidaten des
+  Feldes. `revealSolution()` und `useHint()` räumen betroffene
+  Kandidaten ebenfalls auf.
+- Kandidaten fließen nachweislich nicht in `checkPuzzle()` ein (prüft
+  ausschließlich `game.values`, nie `game.candidates`).
+
+**Zahlenbereich passend zum Spiel:**
+- Sudoku, Kakuro, Killer Sudoku, Thermo Sudoku: immer 1–9.
+- **Futoshiki:** richtet sich nach der jeweiligen Stufe (5×5→1–5 bis
+  9×9→1–9), nicht pauschal 1–9. Kandidatenraster nutzt immer 3 Spalten,
+  aber `game.n` Slots statt fix 9 (CSS `grid-auto-rows` übernimmt die
+  Zeilenzahl automatisch). Feldgröße bleibt bei weniger Ziffern
+  identisch zum 9er-Fall (berechnet immer auf Basis von 10 Slots), die
+  Reihe wird stattdessen kürzer und zentriert — mit Playwright über
+  drei Stufen (5×5/6×6/9×9) verifiziert.
+
+**Speicherung:** additives `candidates`-Feld je Modul, ältere
+Speicherstände ohne dieses Feld laden weiterhin korrekt (leeres Raster
+als Fallback). `noteMode` selbst wird NICHT im Save persistiert,
+sondern folgt wie `highlightEnabled`/`inputMode` einer geräteweiten
+Präferenz.
+
+**Killer-Sudoku-Besonderheit, sauber gelöst:** Zellen enthalten dort
+bereits ein `.cage-sum`-Label (die Käfig-Summe). Ein naives
+Überschreiben des Zellinhalts beim Kandidaten-Rendering hätte dieses
+Label zerstört — dafür wurde ein eigener `.cell-value-wrap`-Container
+eingeführt, den `renderCellContent()` exklusiv verwaltet; das
+Cage-Label bleibt unberührt (mit Playwright verifiziert: Summe vor/nach
+Kandidaten-Eingabe identisch).
+
+**Gefundener und behobener Regressionsfehler:** Der neue Notiz-
+Umschalter vor der festen Zahlenreihe hat die Reihe in allen fünf
+migrierten Modulen zusammengedrückt, weil ihr nicht explizit die
+verbleibende Breite im neuen Toolbar-Wrapper zugewiesen war (`flex:1 1
+0; min-width:0;` fehlte). Per direkter Breitenmessung im Browser
+bestätigt, behoben, erneut verifiziert — Reihe und Notiz-Button füllen
+jetzt wieder gemeinsam die volle verfügbare Breite, Futoshikis
+Zentrierung bleibt dabei exakt erhalten.
+
+**Getestet:** Playwright pro Modul (Popup bleibt offen während des
+Notierens, mehrere gleichzeitige Kandidaten, einzelnes Entfernen ohne
+die anderen zu löschen, echter Wert verwirft Kandidaten, Umschalter
+bleibt zwischen Popup/fester Reihe synchron, Kandidaten-Malen im
+Direktmodus, Persistenz über Zurück+Fortsetzen, Rückwärtskompatibilität
+mit Speicherständen ohne `candidates`-Feld) sowie modulspezifische
+Sonderprüfungen (Futoshiki-Zahlenbereich je Stufe, Killer-Sudoku-Cage-
+Summen-Erhaltung, Thermo-Sudoku-Thermometer-Overlay-Erhaltung).
+Vollständiger Regressionslauf (i18n, alle Unit-Tests, Modul-Konformität,
+Punkt 3/10/15/17) erneut grün, keine Wechselwirkung mit vorherigen
+Backlog-Punkten.
+
+**Als Nächstes (Etappe B):** Bilderkennung für Sudoku Classic, auf
+Basis der vom Nutzer mitgelieferten vorbereiteten Bausteine
+(Solver/Validierung, Tesseract-OCR-Adapter, Scan-/Review-UI).

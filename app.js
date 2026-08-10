@@ -88,10 +88,14 @@ async function bootI18n(){
    ============================================================ */
 let beginAttempt = null;
 let finishAttempt = null;
+let getAllAttempts = null;
+let statsEngine = null;
 async function bootAttempts(){
   const attemptsModule = await import('./core/attempts.js');
   beginAttempt = attemptsModule.beginAttempt;
   finishAttempt = attemptsModule.finishAttempt;
+  getAllAttempts = attemptsModule.getAllAttempts;
+  statsEngine = await import('./core/stats-engine.js');
 }
 
 /* ============================================================
@@ -125,6 +129,7 @@ const screens = {
   moduleGame: document.getElementById('screen-module-game'),
   testSurface: document.getElementById('screen-test-surface'),
   profileSettings: document.getElementById('screen-profile-settings'),
+  stats: document.getElementById('screen-stats'),
 };
 function showScreen(name){
   Object.values(screens).forEach(s => s.classList.add('hidden'));
@@ -301,6 +306,172 @@ document.getElementById('btn-profile-settings-save').addEventListener('click', (
   const checkedLang = document.querySelector('input[name="profile-settings-lang"]:checked');
   if(checkedLang) i18n.setLocale(checkedLang.value);
   enterHome();
+});
+
+/* ============================================================
+   STATISTIKOBERFLÄCHE (Backlog Punkt 18) — liest ausschließlich über
+   core/stats-engine.js aus dem echten Verlaufs-Log (core/attempts.js,
+   getAllAttempts()). Trends (10/50/100) nur bei konkretem Spiel+Stufe,
+   da Zeitvergleiche laut Vorgabe nur innerhalb derselben Kombination
+   gelten. Bewusst minimalistisch: reine Text-/Listendarstellung im
+   bestehenden Kartenstil, kein Diagramm (nicht angefragt).
+   ============================================================ */
+const DIFFICULTY_OPTIONS_BY_GAME = {
+  sudoku: [1,2,3,4,5], hashi: [1,2,3,4,5], kakuro: [1,2,3,4,5],
+  futoshiki: [1,2,3,4,5], 'killer-sudoku': [1,2,3,4,5], 'thermo-sudoku': [1,2,3,4,5],
+  minesweeper: ['beginner','intermediate','expert','custom'],
+};
+const DIFFICULTY_LABEL_KEYS_NUMERIC = {
+  1:'common.difficulty.veryEasy', 2:'common.difficulty.easy', 3:'common.difficulty.medium',
+  4:'common.difficulty.hard', 5:'common.difficulty.expert',
+};
+function difficultyLabel(gameId, difficulty){
+  if(gameId === 'minesweeper') return i18n.t(`game.minesweeper.difficulties.${difficulty}.label`);
+  return i18n.t(DIFFICULTY_LABEL_KEYS_NUMERIC[difficulty] || String(difficulty));
+}
+function formatStatsDuration(ms){
+  if(ms === null || ms === undefined) return '—';
+  const totalSeconds = Math.round(ms / 1000);
+  const m = Math.floor(totalSeconds / 60), s = totalSeconds % 60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+function populateStatsGameFilter(){
+  const select = document.getElementById('stats-filter-game');
+  select.innerHTML = '';
+  const allOpt = document.createElement('option');
+  allOpt.value = ''; allOpt.textContent = i18n.t('stats.filterAllGames');
+  select.appendChild(allOpt);
+  [...LOADABLE_GAME_IDS].forEach(gameId => {
+    const opt = document.createElement('option');
+    opt.value = gameId; opt.textContent = gameTitle(gameId);
+    select.appendChild(opt);
+  });
+}
+function populateStatsDifficultyFilter(gameId){
+  const select = document.getElementById('stats-filter-difficulty');
+  select.innerHTML = '';
+  if(!gameId){
+    select.disabled = true;
+    return;
+  }
+  select.disabled = false;
+  (DIFFICULTY_OPTIONS_BY_GAME[gameId] || []).forEach(diff => {
+    const opt = document.createElement('option');
+    opt.value = String(diff); opt.textContent = difficultyLabel(gameId, diff);
+    select.appendChild(opt);
+  });
+}
+function renderStats(){
+  const gameId = document.getElementById('stats-filter-game').value || undefined;
+  const rawDifficulty = document.getElementById('stats-filter-difficulty').value;
+  // Minesweeper-Stufen sind Strings (z.B. "beginner"), die sechs
+  // übrigen Spiele nutzen numerische Stufen-IDs (1-5) — Rückwandlung
+  // in den passenden Typ, da <select>-Werte immer Strings sind.
+  const difficulty = (gameId && rawDifficulty)
+    ? (gameId === 'minesweeper' ? rawDifficulty : Number(rawDifficulty))
+    : undefined;
+
+  const attempts = getAllAttempts();
+
+  const overview = statsEngine.computeOverview(attempts, gameId ? { gameId } : {});
+  const overviewEl = document.getElementById('stats-overview');
+  overviewEl.innerHTML = `
+    <div class="stats-row"><span class="label">${i18n.t('stats.played')}</span><span class="value">${overview.played}</span></div>
+    <div class="stats-row"><span class="label">${i18n.t('stats.solved')}</span><span class="value">${overview.solved}</span></div>
+    <div class="stats-row"><span class="label">${i18n.t('stats.solveRate')}</span><span class="value">${overview.solveRatePercent === null ? '—' : overview.solveRatePercent + '%'}</span></div>
+  `;
+
+  const detailEl = document.getElementById('stats-detail');
+  const promptEl = document.getElementById('stats-select-prompt');
+  const trendsEl = document.getElementById('stats-trends');
+
+  if(!gameId || difficulty === undefined){
+    detailEl.classList.add('hidden');
+    promptEl.classList.remove('hidden');
+    trendsEl.innerHTML = '';
+    return;
+  }
+  promptEl.classList.add('hidden');
+  detailEl.classList.remove('hidden');
+
+  const detail = statsEngine.computeDifficultyStats(attempts, gameId, difficulty);
+  detailEl.innerHTML = `
+    <div class="stats-row"><span class="label">${i18n.t('stats.played')}</span><span class="value">${detail.played}</span></div>
+    <div class="stats-row"><span class="label">${i18n.t('stats.solved')}</span><span class="value">${detail.solved}</span></div>
+    <div class="stats-row"><span class="label">${i18n.t('stats.revealed')}</span><span class="value">${detail.revealed}</span></div>
+    <div class="stats-row"><span class="label">${i18n.t('stats.solveRate')}</span><span class="value">${detail.solveRatePercent === null ? '—' : detail.solveRatePercent + '%'}</span></div>
+    <div class="stats-row"><span class="label">${i18n.t('stats.avgDuration')}</span><span class="value">${formatStatsDuration(detail.avgDurationMs)}</span></div>
+  `;
+
+  const trends = statsEngine.computeAllTrends(attempts, gameId, difficulty);
+  trendsEl.innerHTML = '';
+  [10, 50, 100].forEach(size => {
+    const t = trends[size];
+    const card = document.createElement('div');
+    card.className = 'stats-trend-card';
+    const heading = i18n.t('stats.trendHeading', { count: size });
+    if(!t.enoughData){
+      card.innerHTML = `<h4>${heading}</h4><div class="not-enough">${i18n.t('stats.notEnoughData')}</div>`;
+    } else {
+      const speedText = t.speedComparable
+        ? (t.speedImprovementPercent >= 0 ? '+' : '') + t.speedImprovementPercent + '%'
+        : i18n.t('stats.speedNotComparable');
+      const speedClass = t.speedComparable ? (t.speedImprovementPercent >= 0 ? 'positive' : 'negative') : '';
+      const rateChangeText = t.solveRateChangePoints === null ? '—' : (t.solveRateChangePoints >= 0 ? '+' : '') + t.solveRateChangePoints + ' pp';
+      const rateClass = t.solveRateChangePoints === null ? '' : (t.solveRateChangePoints >= 0 ? 'positive' : 'negative');
+      card.innerHTML = `
+        <h4>${heading}</h4>
+        <div class="stats-row"><span class="label">${i18n.t('stats.speedImprovement')}</span><span class="value ${speedClass}">${speedText}</span></div>
+        <div class="stats-row"><span class="label">${i18n.t('stats.solveRateChange')}</span><span class="value ${rateClass}">${rateChangeText}</span></div>
+      `;
+    }
+    trendsEl.appendChild(card);
+  });
+}
+document.getElementById('btn-stats').addEventListener('click', () => {
+  closeAllPanels();
+  populateStatsGameFilter();
+  populateStatsDifficultyFilter('');
+  renderStats();
+  showScreen('stats');
+});
+document.getElementById('btn-stats-back').addEventListener('click', enterHome);
+document.getElementById('stats-filter-game').addEventListener('change', (event) => {
+  populateStatsDifficultyFilter(event.target.value);
+  renderStats();
+});
+document.getElementById('stats-filter-difficulty').addEventListener('change', renderStats);
+
+/* ---------- Punkt 21: anonymisierter Testbericht-Export ----------
+   Rohdaten + berechnete Statistik als JSON-Download. profileId wird
+   beim Export bewusst entfernt (Vorgabe: ohne Profilnamen o.ä.
+   persönliche IDs) — im internen Log dient das Feld nur der späteren
+   Mehrprofil-Vorbereitung (Punkt 3/17), nicht dem Export. */
+document.getElementById('btn-stats-export').addEventListener('click', () => {
+  const attempts = getAllAttempts();
+  const anonymizedAttempts = attempts.map(({ profileId, ...rest }) => rest);
+  const perGame = {};
+  [...LOADABLE_GAME_IDS].forEach(gameId => {
+    perGame[gameId] = statsEngine.computeOverview(attempts, { gameId });
+  });
+  const report = {
+    exportedAt: new Date().toISOString(),
+    appInfo: { locale: i18n.getLocale() },
+    overview: statsEngine.computeOverview(attempts, {}),
+    perGame,
+    rawAttempts: anonymizedAttempts,
+  };
+  const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'arkimis-test-report-' + dateStr + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  document.getElementById('stats-export-note').classList.remove('hidden');
 });
 
 /* ============================================================

@@ -62,6 +62,12 @@ for(const file of jsFiles){
   const text = readFileSync(file, 'utf8');
   let match;
   while((match = T_CALL.exec(text))){
+    // Echte Template-Literale mit Interpolation (z.B. `game.x.${var}.label`)
+    // lassen sich nicht statisch auflösen — kein Fehltreffer, einfach
+    // übersprungen. Der reale Ziel-Key wird an anderer Stelle (dort, wo er
+    // als fertiger String zusammengesetzt/zugewiesen wird, siehe zweiter
+    // Pass unten) bereits als "verwendet" erkannt.
+    if(match[2].includes('${')) continue;
     record(match[2], file.replace(ROOT + '/', ''));
   }
 }

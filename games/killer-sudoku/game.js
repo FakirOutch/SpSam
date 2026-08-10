@@ -90,6 +90,8 @@ function writeSave(){
     elapsedSeconds:currentElapsed(), savedAt:Date.now(),
     attemptId:game.attemptId, attemptCreatedAt:game.attemptCreatedAt,
     attemptFirstActionAt:game.attemptFirstActionAt, attemptHintsUsed:game.attemptHintsUsed,
+    // Backlog: Notizzahlen-Anpassung — additiv, siehe games/sudoku/game.js.
+    candidates:game.candidates,
   }));
 }
 function clearSave(){ sharedClearSave(SAVE_KEY); }
@@ -162,7 +164,10 @@ function markup(){
       <button class="btn block" data-action="check" disabled>${t('common.check')}</button>
     </div>
     <div class="inline-input hidden" data-role="inline-input">
-      <div class="inline-input-row" data-role="inline-numpad"></div>
+      <div class="inline-input-toolbar">
+        <button class="note-mode-btn" data-action="note-mode" title="${t('common.noteMode')}" aria-label="${t('common.noteMode')}">✏️</button>
+        <div class="inline-input-row" data-role="inline-numpad"></div>
+      </div>
     </div>
   </section>`;
 }
@@ -183,13 +188,21 @@ function buildNumpad(){
   for(let v = 1; v <= 9; v++){
     const button = document.createElement('button');
     button.textContent = v;
-    listen(button, 'click', () => setCellValue(v));
+    listen(button, 'click', () => onPopupNumberTap(v));
     el.appendChild(button);
   }
+  const noteToggle = document.createElement('button');
+  noteToggle.className = 'note-toggle-btn';
+  noteToggle.dataset.action = 'note-mode-popup';
+  noteToggle.textContent = '✏️';
+  noteToggle.title = t('common.noteMode');
+  noteToggle.setAttribute('aria-label', t('common.noteMode'));
+  listen(noteToggle, 'click', toggleNoteMode);
+  el.appendChild(noteToggle);
   const clearButton = document.createElement('button');
   clearButton.className = 'clear-btn';
   clearButton.textContent = t('common.clearField');
-  listen(clearButton, 'click', () => setCellValue(0));
+  listen(clearButton, 'click', onPopupClearTap);
   el.appendChild(clearButton);
 }
 function buildInlineNumpad(){
@@ -241,6 +254,7 @@ function bindEvents(){
     root.querySelector('[data-role="inline-input"]').classList.toggle('hidden', game.inputMode === 'popup');
     if(game.inputMode === 'popup'){ game.markedValue = null; refreshInlineMarks(); }
   });
+  listen(root.querySelector('[data-action="note-mode"]'), 'click', toggleNoteMode);
 }
 
 export async function start(level){
@@ -266,6 +280,7 @@ export async function start(level){
     inputMode: context.preferences.get('inputMode', 'popup'), markedValue:null,
     hasInteracted:false, counted:false, activeCell:null,
     elapsedSeconds:0, startedAt:null,
+    candidates:emptyCandidates(), noteMode:context.preferences.get('noteMode', false),
     attemptId:attempt.attemptId, attemptCreatedAt:attempt.createdAt,
     attemptFirstActionAt:null, attemptHintsUsed:0,
   };
@@ -288,6 +303,8 @@ export async function restore(savedState = readSave()){
     hasInteracted:savedState.hasInteracted, counted:savedState.counted, activeCell:null,
     elapsedSeconds:savedState.elapsedSeconds + Math.max(0, Math.floor((Date.now() - savedState.savedAt) / 1000)),
     startedAt:null,
+    candidates: savedState.candidates || emptyCandidates(),
+    noteMode: context.preferences.get('noteMode', false),
     attemptId: hasAttemptData ? savedState.attemptId : context.attempts.begin().attemptId,
     attemptCreatedAt: hasAttemptData ? savedState.attemptCreatedAt : fallbackCreatedAt,
     attemptFirstActionAt: hasAttemptData ? (savedState.attemptFirstActionAt || null) : (savedState.hasInteracted ? fallbackCreatedAt : null),
@@ -309,6 +326,7 @@ function applyGameToUi(){
   root.querySelector('[data-role="inline-input"]').classList.toggle('hidden', game.inputMode === 'popup');
   refreshHintButton();
   refreshInlineMarks();
+  refreshNoteModeUi();
   renderGrid();
   updateCheckButton();
 }
@@ -364,11 +382,19 @@ function renderGrid(){
       }
       cell.style.setProperty('--lines', lines.join(', '));
 
-      if(val !== 0){
+      // Backlog: Notizzahlen-Anpassung — eigener Container für Wert/
+      // Kandidaten, damit das .cage-sum-Label beim Aktualisieren NIE
+      // mit überschrieben wird (renderCellContent() rührt nur dieses
+      // Element an, nicht die ganze Zelle).
+      const contentWrap = document.createElement('span');
+      contentWrap.className = 'cell-value-wrap';
+      cell.appendChild(contentWrap);
+      if(!given) renderCellContent(r, c, contentWrap);
+      else if(val !== 0){
         const numSpan = document.createElement('span');
         numSpan.className = 'cell-value';
         numSpan.textContent = val;
-        cell.appendChild(numSpan);
+        contentWrap.appendChild(numSpan);
       }
       if(!given) cell.addEventListener('click', () => handleCellTap(r, c, cell));
       fragment.appendChild(cell);
@@ -377,11 +403,44 @@ function renderGrid(){
   gridEl.appendChild(fragment);
 }
 
+// Backlog: Notizzahlen-Anpassung — zeigt entweder die gesetzte Zahl (als
+// .cell-value, wie zuvor — checkPuzzle()/setCellValue() lesen weiterhin
+// exakt diese Klasse) oder ein 3×3-Kandidatenraster in contentWrap.
+function renderCellContent(row, col, contentWrap){
+  const value = game.values[row][col];
+  contentWrap.innerHTML = '';
+  contentWrap.classList.remove('has-candidates');
+  if(value){
+    const numSpan = document.createElement('span');
+    numSpan.className = 'cell-value';
+    numSpan.textContent = value;
+    contentWrap.appendChild(numSpan);
+    return;
+  }
+  const candidates = game.candidates[row][col];
+  if(!candidates || !candidates.length) return;
+  contentWrap.classList.add('has-candidates');
+  contentWrap.innerHTML = '<div class="candidate-grid">' +
+    Array.from({ length: 9 }, (_, i) => {
+      const n = i + 1;
+      return `<span class="candidate-slot">${candidates.includes(n) ? n : ''}</span>`;
+    }).join('') +
+    '</div>';
+}
+function emptyCandidates(){
+  return Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => []));
+}
+
 function handleCellTap(r, c, cellEl){
   if(game.inputMode === 'direct'){
     if(game.markedValue === null || game.markedValue === undefined) return;
     game.activeCell = { row:r, col:c, el:cellEl };
-    setCellValue(game.markedValue === 'delete' ? 0 : game.markedValue);
+    if(game.noteMode){
+      if(game.markedValue === 'delete') clearCandidates(r, c);
+      else toggleCandidate(r, c, game.markedValue);
+    } else {
+      setCellValue(game.markedValue === 'delete' ? 0 : game.markedValue);
+    }
     highlightRowCol(r, c);
   } else {
     openNumpad(r, c, cellEl);
@@ -414,23 +473,66 @@ function clearRowColHighlight(){
 function setCellValue(v){
   const { row, col, el } = game.activeCell;
   game.values[row][col] = v;
+  if(v) game.candidates[row][col] = []; // echter Wert -> Kandidaten verwerfen
   markInteracted();
-  let valueSpan = el.querySelector('.cell-value');
-  if(v === 0){
-    if(valueSpan) valueSpan.remove();
-  } else {
-    if(!valueSpan){
-      valueSpan = document.createElement('span');
-      valueSpan.className = 'cell-value';
-      el.appendChild(valueSpan);
-    }
-    valueSpan.textContent = v;
-  }
+  const contentWrap = el.querySelector('.cell-value-wrap');
+  if(contentWrap) renderCellContent(row, col, contentWrap);
   el.classList.remove('wrong');
   if(game.cageStyle === 'fill') el.style.backgroundColor = el.dataset.cageBg || '';
   closeNumpad();
   updateCheckButton();
   writeSave();
+}
+// Backlog: Notizzahlen-Anpassung
+function onPopupNumberTap(v){
+  if(!game.activeCell) return;
+  if(game.noteMode){
+    const { row, col } = game.activeCell;
+    toggleCandidate(row, col, v);
+    return;
+  }
+  setCellValue(v);
+}
+function onPopupClearTap(){
+  if(!game.activeCell) return;
+  if(game.noteMode){
+    const { row, col } = game.activeCell;
+    clearCandidates(row, col);
+    return;
+  }
+  setCellValue(0);
+}
+function toggleCandidate(row, col, value){
+  if(game.values[row][col]) return;
+  const list = game.candidates[row][col];
+  const idx = list.indexOf(value);
+  if(idx >= 0) list.splice(idx, 1);
+  else { list.push(value); list.sort((a,b) => a - b); }
+  markInteracted();
+  const cellEl = root.querySelector(`.killer-cell[data-row="${row}"][data-col="${col}"]`);
+  const contentWrap = cellEl && cellEl.querySelector('.cell-value-wrap');
+  if(contentWrap) renderCellContent(row, col, contentWrap);
+  writeSave();
+}
+function clearCandidates(row, col){
+  if(!game.candidates[row][col].length) return;
+  game.candidates[row][col] = [];
+  markInteracted();
+  const cellEl = root.querySelector(`.killer-cell[data-row="${row}"][data-col="${col}"]`);
+  const contentWrap = cellEl && cellEl.querySelector('.cell-value-wrap');
+  if(contentWrap) renderCellContent(row, col, contentWrap);
+  writeSave();
+}
+function toggleNoteMode(){
+  game.noteMode = !game.noteMode;
+  context.preferences.set('noteMode', game.noteMode);
+  refreshNoteModeUi();
+}
+function refreshNoteModeUi(){
+  if(!root || !game) return;
+  root.querySelectorAll('[data-action="note-mode"], [data-action="note-mode-popup"]').forEach(btn =>
+    btn.classList.toggle('active', game.noteMode)
+  );
 }
 function markInlineValue(value){
   game.markedValue = game.markedValue === value ? null : value;
@@ -495,6 +597,7 @@ function useHint(){
   if(!empty.length || !context.hints.consume('killer-sudoku')) return;
   const [r,c] = empty[Math.floor(Math.random() * empty.length)];
   game.values[r][c] = game.solution[r][c];
+  game.candidates[r][c] = [];
   game.attemptHintsUsed = (game.attemptHintsUsed || 0) + 1; // Backlog Punkt 17
   markInteracted();
   renderGrid(); updateCheckButton(); refreshHintButton(); writeSave();
@@ -502,6 +605,7 @@ function useHint(){
 function revealSolution(){
   if(!game) return;
   for(let r = 0; r < 9; r++) for(let c = 0; c < 9; c++) game.values[r][c] = game.solution[r][c];
+  game.candidates = emptyCandidates();
   markInteracted();
   game.counted = true;
   stopTimer(); clearSave(); renderGrid(); updateCheckButton();

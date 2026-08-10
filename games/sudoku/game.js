@@ -117,6 +117,11 @@ function writeSave(){
     // bleiben gültig (siehe restore()-Fallback).
     attemptId:game.attemptId, attemptCreatedAt:game.attemptCreatedAt,
     attemptFirstActionAt:game.attemptFirstActionAt, attemptHintsUsed:game.attemptHintsUsed,
+    // Backlog: Notizzahlen-Anpassung — additiv, ältere Speicherstände ohne
+    // dieses Feld bleiben gültig (siehe restore()-Fallback). noteMode
+    // selbst wird NICHT gespeichert (folgt wie highlightEnabled/inputMode
+    // einer geräteweiten Präferenz, kein Teil des einzelnen Spielstands).
+    candidates:game.candidates,
   }));
 }
 
@@ -187,7 +192,10 @@ function markup(){
     <div class="grid-actions"><button class="btn secondary block" data-action="new">${t('common.newPuzzle')}</button>
       <button class="btn block" data-action="check" disabled>${t('common.check')}</button></div>
     <div class="inline-input hidden" data-role="inline-input">
-      <div class="inline-input-row" data-role="inline-numpad"></div>
+      <div class="inline-input-toolbar">
+        <button class="note-mode-btn" data-action="note-mode" title="${t('common.noteMode')}" aria-label="${t('common.noteMode')}">✏️</button>
+        <div class="inline-input-row" data-role="inline-numpad"></div>
+      </div>
     </div>
   </section>`;
 }
@@ -203,18 +211,28 @@ export async function mount(container, appContext){
   bindEvents();
 }
 
-// Popup-Zifferblock (Variante 1) — unverändert gegenüber vorher.
+// Popup-Zifferblock (Variante 1). Reihe 4 (Backlog: Notizzahlen-Anpassung):
+// Notiz-Umschalter (1×1, unten links) + vergrößertes Löschfeld (2×1) —
+// dieselbe Reihe wie zuvor nur das Löschfeld allein belegte.
 function buildPopupNumpad(){
   const popup = root.querySelector('[data-role="numpad"]');
   for(let value = 1; value <= 9; value++){
     const button = document.createElement('button');
     button.textContent = value;
-    listen(button, 'click', () => setCellValue(value));
+    listen(button, 'click', () => onPopupNumberTap(value));
     popup.appendChild(button);
   }
+  const noteToggle = document.createElement('button');
+  noteToggle.className = 'note-toggle-btn';
+  noteToggle.dataset.action = 'note-mode-popup';
+  noteToggle.textContent = '✏️';
+  noteToggle.title = t('common.noteMode');
+  noteToggle.setAttribute('aria-label', t('common.noteMode'));
+  listen(noteToggle, 'click', toggleNoteMode);
+  popup.appendChild(noteToggle);
   const clear = document.createElement('button');
   clear.className = 'clear-btn'; clear.textContent = t('common.clearField');
-  listen(clear, 'click', () => setCellValue(0));
+  listen(clear, 'click', onPopupClearTap);
   popup.appendChild(clear);
 }
 
@@ -259,9 +277,14 @@ function bindEvents(){
     root.querySelector('[data-role="inline-input"]').classList.toggle('hidden', game.inputMode === 'popup');
     closeNumpad(); refreshInlineMarks();
   });
+  listen(root.querySelector('[data-action="note-mode"]'), 'click', toggleNoteMode);
   listen(root.querySelector('[data-role="backdrop"]'), 'click', event => {
     if(event.target === event.currentTarget) closeNumpad();
   });
+}
+
+function emptyCandidates(){
+  return Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => []));
 }
 
 export async function start(level){
@@ -289,6 +312,7 @@ export async function start(level){
     counted:false, hasInteracted:false, elapsedSeconds:0, startedAt:null,
     highlightEnabled:context.preferences.get('highlight', false),
     inputMode:context.preferences.get('inputMode', 'popup'), markedValue:null,
+    candidates:emptyCandidates(), noteMode:context.preferences.get('noteMode', false),
     attemptId:attempt.attemptId, attemptCreatedAt:attempt.createdAt,
     attemptFirstActionAt:null, attemptHintsUsed:0,
   };
@@ -312,6 +336,11 @@ export async function restore(savedState = readSave()){
     elapsedSeconds:savedState.elapsedSeconds + Math.max(0, Math.floor((Date.now() - savedState.savedAt) / 1000)),
     startedAt:null, highlightEnabled:context.preferences.get('highlight', false),
     inputMode:context.preferences.get('inputMode', 'popup'), markedValue:null,
+    // Backlog: Notizzahlen-Anpassung — ältere Speicherstände ohne
+    // Kandidatenfeld bekommen ein leeres Raster (additive Erweiterung,
+    // bricht validateSave() nicht, siehe dort).
+    candidates: savedState.candidates || emptyCandidates(),
+    noteMode: context.preferences.get('noteMode', false),
     attemptId: hasAttemptData ? savedState.attemptId : context.attempts.begin().attemptId,
     attemptCreatedAt: hasAttemptData ? savedState.attemptCreatedAt : fallbackCreatedAt,
     attemptFirstActionAt: hasAttemptData ? (savedState.attemptFirstActionAt || null) : (savedState.hasInteracted ? fallbackCreatedAt : null),
@@ -330,7 +359,7 @@ function applyGameToUi(){
   root.querySelector('[data-role="timer"]').textContent = formatTime(game.elapsedSeconds);
   const reveal = root.querySelector('[data-action="reveal"]');
   reveal.title = t('common.reveal'); reveal.disabled = false; reveal.classList.remove('used');
-  refreshHintButton(); refreshInlineMarks(); renderGrid(); updateCheckButton();
+  refreshHintButton(); refreshInlineMarks(); refreshNoteModeUi(); renderGrid(); updateCheckButton();
 }
 
 function renderGrid(){
@@ -343,18 +372,49 @@ function renderGrid(){
       cell.className = `sudoku-module-cell ${given ? 'given' : 'editable'}`;
       cell.dataset.row = row; cell.dataset.col = col;
       cell.style.setProperty('--lines', sudokuBlockLines(row, col).join(', '));
-      if(game.values[row][col]) cell.textContent = game.values[row][col];
+      if(given) cell.textContent = game.values[row][col];
+      else renderCellContent(row, col, cell);
       if(!given) listen(cell, 'click', () => handleCellTap(row, col, cell));
       grid.appendChild(cell);
     }
   }
 }
 
+// Backlog: Notizzahlen-Anpassung. Zeigt entweder die gesetzte Lösungszahl,
+// ein kleines 3×3-Kandidatenraster (nur belegte Positionen sichtbar) oder
+// ein leeres Feld. Kandidaten sind rein visuell — siehe toggleCandidate().
+function renderCellContent(row, col, cell){
+  const value = game.values[row][col];
+  if(value){
+    cell.textContent = value;
+    cell.classList.remove('has-candidates');
+    return;
+  }
+  const candidates = game.candidates[row][col];
+  if(!candidates || !candidates.length){
+    cell.textContent = '';
+    cell.classList.remove('has-candidates');
+    return;
+  }
+  cell.classList.add('has-candidates');
+  cell.innerHTML = '<div class="candidate-grid">' +
+    Array.from({ length: 9 }, (_, i) => {
+      const n = i + 1;
+      return `<span class="candidate-slot">${candidates.includes(n) ? n : ''}</span>`;
+    }).join('') +
+    '</div>';
+}
+
 function handleCellTap(row, col, cell){
   if(game.inputMode === 'direct'){
     if(game.markedValue === null) return;
     game.activeCell = { row, col, cell };
-    setCellValue(game.markedValue === 'delete' ? 0 : game.markedValue);
+    if(game.noteMode){
+      if(game.markedValue === 'delete') clearCandidates(row, col);
+      else toggleCandidate(row, col, game.markedValue);
+    } else {
+      setCellValue(game.markedValue === 'delete' ? 0 : game.markedValue);
+    }
     highlight(row, col);
     return;
   }
@@ -365,14 +425,74 @@ function handleCellTap(row, col, cell){
   highlight(row, col);
 }
 
+// Popup-Zifferblock: im Notizmodus wird die Zahl als Kandidat ein-/
+// ausgetragen und das Popup bleibt offen (mehrere Kandidaten nacheinander
+// möglich); ohne Notizmodus unverändertes Verhalten (Wert setzen, Popup
+// schließt). Backlog: Notizzahlen-Anpassung.
+function onPopupNumberTap(value){
+  if(!game.activeCell) return;
+  if(game.noteMode){
+    const { row, col } = game.activeCell;
+    toggleCandidate(row, col, value);
+    return;
+  }
+  setCellValue(value);
+}
+function onPopupClearTap(){
+  if(!game.activeCell) return;
+  if(game.noteMode){
+    const { row, col } = game.activeCell;
+    clearCandidates(row, col);
+    return;
+  }
+  setCellValue(0);
+}
+
 function setCellValue(value){
   if(!game.activeCell) return;
   const { row, col, cell } = game.activeCell;
   game.values[row][col] = value;
+  // Eine gesetzte Lösungszahl verwirft die Kandidaten dieses Feldes
+  // (Backlog: Notizzahlen-Anpassung) — nur beim Setzen eines echten Werts,
+  // nicht beim Löschen (value===0 lässt evtl. vorhandene Kandidaten in Ruhe).
+  if(value) game.candidates[row][col] = [];
   markInteracted();
-  cell.textContent = value || '';
+  renderCellContent(row, col, cell);
   cell.classList.remove('wrong');
   closeNumpad(); updateCheckButton(); writeSave();
+}
+
+// Backlog: Notizzahlen-Anpassung — Kandidaten sind reine Spielerhilfe,
+// fließen nie in Prüfen/Solver/Statistik ein (siehe checkPuzzle()).
+function toggleCandidate(row, col, value){
+  if(game.values[row][col]) return; // Kandidaten nur auf leeren Feldern sinnvoll
+  const list = game.candidates[row][col];
+  const idx = list.indexOf(value);
+  if(idx >= 0) list.splice(idx, 1);
+  else { list.push(value); list.sort((a,b) => a - b); }
+  markInteracted();
+  const cell = root.querySelector(`.sudoku-module-cell[data-row="${row}"][data-col="${col}"]`);
+  if(cell) renderCellContent(row, col, cell);
+  writeSave();
+}
+function clearCandidates(row, col){
+  if(!game.candidates[row][col].length) return;
+  game.candidates[row][col] = [];
+  markInteracted();
+  const cell = root.querySelector(`.sudoku-module-cell[data-row="${row}"][data-col="${col}"]`);
+  if(cell) renderCellContent(row, col, cell);
+  writeSave();
+}
+function toggleNoteMode(){
+  game.noteMode = !game.noteMode;
+  context.preferences.set('noteMode', game.noteMode);
+  refreshNoteModeUi();
+}
+function refreshNoteModeUi(){
+  if(!root || !game) return;
+  root.querySelectorAll('[data-action="note-mode"], [data-action="note-mode-popup"]').forEach(btn =>
+    btn.classList.toggle('active', game.noteMode)
+  );
 }
 
 function closeNumpad(){
@@ -450,6 +570,7 @@ function useHint(){
   if(!candidates.length || !context.hints.consume('sudoku')) return;
   const [row,col] = candidates[Math.floor(Math.random() * candidates.length)];
   game.values[row][col] = game.solution[row][col];
+  game.candidates[row][col] = []; // echter Wert gesetzt -> Kandidaten dieses Felds verwerfen
   game.attemptHintsUsed = (game.attemptHintsUsed || 0) + 1; // Backlog Punkt 17
   markInteracted();
   renderGrid(); updateCheckButton(); refreshHintButton(); writeSave();
@@ -457,6 +578,7 @@ function useHint(){
 
 function revealSolution(){
   game.values = game.solution.map(row => row.slice());
+  game.candidates = emptyCandidates(); // alle Felder sind jetzt gefüllt, Kandidaten sind hinfällig
   markInteracted();
   game.counted = true;
   stopTimer(); clearSave(); renderGrid(); updateCheckButton();

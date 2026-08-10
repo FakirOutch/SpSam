@@ -134,3 +134,45 @@ export function getAllAttempts(){
 export function clearAllAttempts(){
   writeLog({ schemaVersion: SCHEMA_VERSION, entries: [] });
 }
+
+/* ============================================================
+   TESTDATEN (Backlog Punkt 20) — bewusst ein VOLLSTÄNDIG separater
+   Storage-Key (arkimis_attempts_test_v1), niemals derselbe wie das
+   echte Verlaufs-Log. So können Testdaten nie unbemerkt in die
+   reale Statistik einfließen — beide Quellen sind strukturell
+   getrennt, nicht nur durch eine Markierung innerhalb eines
+   gemeinsamen Logs. Die Statistikoberfläche (Punkt 18) entscheidet
+   explizit und sichtbar, welche Quelle sie gerade anzeigt (siehe
+   dort), niemals implizit.
+   ============================================================ */
+const TEST_STORAGE_KEY = 'arkimis_attempts_test_v1';
+
+function readTestLog(){
+  try{
+    const raw = localStorage.getItem(TEST_STORAGE_KEY);
+    if(!raw) return { schemaVersion: SCHEMA_VERSION, entries: [] };
+    const parsed = JSON.parse(raw);
+    if(!parsed || !Array.isArray(parsed.entries)) return { schemaVersion: SCHEMA_VERSION, entries: [] };
+    return parsed;
+  }catch(e){
+    return { schemaVersion: SCHEMA_VERSION, entries: [] };
+  }
+}
+function writeTestLog(log){
+  try{ localStorage.setItem(TEST_STORAGE_KEY, JSON.stringify(log)); }catch(e){ /* siehe writeLog() oben */ }
+}
+
+/** Ersetzt den kompletten Testdaten-Bestand durch die übergebenen Einträge (z.B. aus core/attempts-fixtures.js). */
+export function loadTestAttempts(entries){
+  writeTestLog({ schemaVersion: SCHEMA_VERSION, entries: Array.isArray(entries) ? entries : [] });
+}
+
+/** Read-only Kopie der Testdaten. */
+export function getAllTestAttempts(){
+  return readTestLog().entries.slice();
+}
+
+/** Leert ausschließlich die Testdaten — rührt das echte Log nicht an. */
+export function clearTestAttempts(){
+  writeTestLog({ schemaVersion: SCHEMA_VERSION, entries: [] });
+}

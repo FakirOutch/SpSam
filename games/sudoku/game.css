@@ -65,3 +65,48 @@
   background:var(--primary-bg); color:var(--primary-dark);
   box-shadow:inset 0 0 0 2px var(--primary-dark);
 }
+
+/* ---------- Notizzahlen/Kandidatenmodus (Backlog: Notizzahlen-Anpassung) ----------
+   Modul-eigenes Override statt Änderung der gemeinsamen .numpad-Basis in
+   style.css — vermeidet, dass die übrigen Zahlenspiele optisch brechen,
+   solange sie den Kandidatenmodus noch nicht ebenfalls bekommen haben.
+   Popup Reihe 4: Notiz-Umschalter (1×1, links) + vergrößertes Löschfeld
+   (2×1, rechts) statt zuvor einem alleinstehenden Löschfeld. */
+.game-sudoku .numpad .note-toggle-btn{
+  grid-column:1; border-radius:50%; width:52px; height:52px;
+  background:var(--surface-soft); color:var(--ink-soft);
+  font-size:18px; box-shadow:var(--shadow-press);
+  display:flex; align-items:center; justify-content:center;
+}
+.game-sudoku .numpad .note-toggle-btn.active{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:var(--shadow-press), inset 0 0 0 2px var(--primary-dark);
+}
+.game-sudoku .numpad .clear-btn{ grid-column:2 / -1; }
+
+/* Feste Reihe: Notiz-Umschalter links neben der Zahlenreihe (nicht Teil
+   der 10er-Flex-Reihe selbst, damit die Zifferngröße unverändert bleibt). */
+.game-sudoku .inline-input-toolbar{ display:flex; align-items:center; gap:8px; }
+.game-sudoku .inline-input-toolbar .inline-input-row{ flex:1 1 0; min-width:0; }
+.game-sudoku .note-mode-btn{
+  flex-shrink:0; width:37px; height:37px; border-radius:50%;
+  background:var(--surface-soft); color:var(--ink-soft); font-size:16px;
+  box-shadow:var(--shadow-soft);
+  display:flex; align-items:center; justify-content:center;
+}
+.game-sudoku .note-mode-btn.active{
+  background:var(--primary-bg); color:var(--primary-dark);
+  box-shadow:inset 0 0 0 2px var(--primary-dark);
+}
+
+/* Kleines 3×3-Kandidatenraster innerhalb einer leeren Zelle. */
+.game-sudoku .sudoku-module-cell.has-candidates{ font-size:0; }
+.game-sudoku .candidate-grid{
+  display:grid; grid-template-columns:repeat(3, 1fr); grid-template-rows:repeat(3, 1fr);
+  width:100%; height:100%; padding:2px;
+}
+.game-sudoku .candidate-slot{
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; font-weight:700; color:var(--ink-soft);
+  font-family:var(--font-body);
+}
