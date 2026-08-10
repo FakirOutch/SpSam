@@ -30,11 +30,11 @@ export default {
     hintsSuffix: 'hints',
     hintsInfinite: '∞',
     reveal: 'Show solution (does not count as solved)',
+    revealLabel: 'Solution',
     revealed: 'Solution shown — does not count as solved',
     clearField: 'Clear field',
     deleteNumber: 'Delete number',
     continueGame: 'Continue',
-    discardConfirmNamed: 'Discard the {game} in progress and choose a new game?',
     inputModeToggleTitle: 'Input: on = popup keypad, off = fixed number row below',
     toggleFocus: 'Focus',
     toggleInput: 'Input',
@@ -53,6 +53,10 @@ export default {
     subtitle: 'Create your profile to start playing.',
     namePlaceholder: 'Your name',
     start: 'Let\u2019s go',
+    settingsIcon: 'Profile',
+    settingsTitle: 'Profile',
+    nameFieldLabel: 'Name',
+    save: 'Save',
   },
 
   home: {
@@ -67,6 +71,7 @@ export default {
     inDevelopment: 'In development',
     badgeSoon: 'soon',
     badgeNew: 'new',
+    badgeTest: 'Test',
   },
 
   panel: {

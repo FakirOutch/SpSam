@@ -21,11 +21,11 @@ export default {
     hintsSuffix: 'Tipps',
     hintsInfinite: '∞',
     reveal: 'Lösung anzeigen (zählt nicht als gelöst)',
+    revealLabel: 'Auflösung',
     revealed: 'Lösung angezeigt — zählt nicht als gelöst',
     clearField: 'Feld leeren',
     deleteNumber: 'Zahl löschen',
     continueGame: 'Fortsetzen',
-    discardConfirmNamed: 'Das begonnene {game} verwerfen und ein neues Spiel wählen?',
     inputModeToggleTitle: 'Eingabe: An = Zifferblock-Popup, Aus = feste Zahlenauswahl unten',
     focusToggleTitle: 'Fokus: Reihe & Spalte beim Eintragen grau hervorheben',
     toggleFocus: 'Fokus',
@@ -45,6 +45,10 @@ export default {
     subtitle: 'Leg dein Profil an, um loszuspielen.',
     namePlaceholder: 'Dein Name',
     start: 'Los geht\u2019s',
+    settingsIcon: 'Profil',
+    settingsTitle: 'Profil',
+    nameFieldLabel: 'Name',
+    save: 'Speichern',
   },
 
   home: {
@@ -59,6 +63,7 @@ export default {
     inDevelopment: 'In Entwicklung',
     badgeSoon: 'bald',
     badgeNew: 'neu',
+    badgeTest: 'Test',
   },
 
   panel: {
@@ -156,7 +161,6 @@ export default {
       flagModeTitle: 'Flaggen-Modus',
       lost: '💥 Verloren — versuch es nochmal!',
       success: 'Alle Felder ohne Mine sind aufgedeckt. Stark gespielt!',
-      discardConfirm: 'Das begonnene Spiel verwerfen und neu starten?',
       difficulties: {
         beginner: { label: 'Anfänger', desc: '9×9, 10 Minen' },
         intermediate: { label: 'Fortgeschritten', desc: '16×16, 40 Minen' },

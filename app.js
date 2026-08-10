@@ -99,7 +99,7 @@ const GAMES = [
   { id:'futoshiki', icon:'⚖️', available:true, addedOrder:6 },
   { id:'killer-sudoku', icon:'🔪', available:true, addedOrder:7 },
   { id:'thermo-sudoku', icon:'🌡️', available:true, addedOrder:9 },
-  { id:'memory', icon:'🧠', available:false, addedOrder:8 },
+  { id:'memory', icon:'🧠', available:false, testOnly:true, addedOrder:8 },
 ];
 
 /* ============================================================
@@ -110,6 +110,8 @@ const screens = {
   home: document.getElementById('screen-home'),
   levels: document.getElementById('screen-levels'),
   moduleGame: document.getElementById('screen-module-game'),
+  testSurface: document.getElementById('screen-test-surface'),
+  profileSettings: document.getElementById('screen-profile-settings'),
 };
 function showScreen(name){
   Object.values(screens).forEach(s => s.classList.add('hidden'));
@@ -214,6 +216,8 @@ document.getElementById('btn-create-profile').addEventListener('click', () => {
   if(!val) return;
   state.profileName = val;
   saveState();
+  const checkedLang = document.querySelector('input[name="onboarding-lang"]:checked');
+  if(checkedLang) i18n.setLocale(checkedLang.value);
   enterHome();
 });
 
@@ -242,6 +246,30 @@ function renderGreeting(){
   container.appendChild(nameSpan);
   container.appendChild(document.createTextNode((suffix || '') + ' 👋'));
 }
+
+/* ============================================================
+   PROFIL-EINSTELLUNGEN (Backlog Punkt 8) — Name UND Sprache an
+   einer Stelle bearbeitbar, Sprachfeld direkt unterhalb des
+   Namensfelds. Nutzt fürs Speichern der Sprache dieselbe
+   i18n.setLocale()-Funktion wie das bestehende Sprachpanel — es
+   gibt nur eine Quelle der Wahrheit für die aktive Sprache.
+   ============================================================ */
+document.getElementById('btn-profile-settings').addEventListener('click', () => {
+  closeAllPanels();
+  document.getElementById('profile-settings-name').value = state.profileName || '';
+  const radio = document.getElementById('profile-settings-lang-' + i18n.getLocale());
+  if(radio) radio.checked = true;
+  showScreen('profileSettings');
+});
+document.getElementById('btn-profile-settings-back').addEventListener('click', enterHome);
+document.getElementById('btn-profile-settings-save').addEventListener('click', () => {
+  const val = document.getElementById('profile-settings-name').value.trim();
+  if(val) state.profileName = val;
+  saveState();
+  const checkedLang = document.querySelector('input[name="profile-settings-lang"]:checked');
+  if(checkedLang) i18n.setLocale(checkedLang.value);
+  enterHome();
+});
 
 /* ============================================================
    STARTBILDSCHIRM / SPIELESAMMLUNG
@@ -392,6 +420,19 @@ function renderGameListView(){
     const card = document.createElement('div');
     card.className = 'game-card';
 
+    if(g.testOnly){
+      card.classList.add('soon');
+      card.innerHTML = `
+        <div class="icon">${g.icon}</div>
+        <div class="info">
+          <h3>${gameTitle(g.id)} <span class="badge-test">${i18n.t('home.badgeTest')}</span></h3>
+          <div class="stats">${i18n.t('home.inDevelopment')}</div>
+        </div>`;
+      card.addEventListener('click', () => openTestSurface());
+      grid.appendChild(card);
+      return;
+    }
+
     if(!g.available){
       card.classList.add('soon');
       card.innerHTML = `
@@ -449,6 +490,17 @@ function renderGameIconGrid(){
   pageItems.forEach(g => {
     const tile = document.createElement('div');
     tile.className = 'icongrid-tile';
+    if(g.testOnly){
+      tile.classList.add('soon');
+      tile.innerHTML = `
+        <div class="icon">${g.icon}</div>
+        <div class="label">${gameTitle(g.id)}</div>
+        <span class="badge-test" style="position:absolute; top:6px; right:6px;">${i18n.t('home.badgeTest')}</span>
+      `;
+      tile.addEventListener('click', () => openTestSurface());
+      page.appendChild(tile);
+      return;
+    }
     if(!g.available) tile.classList.add('soon');
     const locked = g.available && !sim.purchased && !sim.online && state.lastOpenedGame !== g.id;
     if(locked) tile.classList.add('locked');
@@ -505,6 +557,30 @@ async function openGame(gameId){
   saveState();
   if(LOADABLE_GAME_IDS.has(gameId)) await showModuleLevels(gameId);
 }
+
+/* ============================================================
+   TESTFLÄCHE (Backlog Punkt 7) — erreichbar über die "Memory"-
+   Platzhalterkachel. Kein echtes Spielmodul: kein mount()/unmount(),
+   keine Registry, kein Generator, keine Speicherstände. Baut das leere
+   9×9-Raster einmalig; die drei Regler sind rein visuell (keine
+   Speicherung, keine echte Wirkung auf ein Rätsel).
+   ============================================================ */
+let testSurfaceBuilt = false;
+function openTestSurface(){
+  closeAllPanels();
+  if(!testSurfaceBuilt){
+    const grid = document.getElementById('test-surface-grid');
+    for(let i = 0; i < 81; i++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      grid.appendChild(cell);
+    }
+    testSurfaceBuilt = true;
+  }
+  showScreen('testSurface');
+}
+document.getElementById('btn-test-surface-back').addEventListener('click', enterHome);
+
 let activeGameId = 'sudoku'; // merkt sich, welches Spiel gerade die Levelauswahl/den Zurück-Pfeil benutzt
 
 document.getElementById('btn-levels-back').addEventListener('click', () => {

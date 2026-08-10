@@ -17,7 +17,18 @@
     <h1 data-i18n="profile.welcome">Willkommen!</h1>
     <p data-i18n="profile.subtitle">Leg dein Profil an, um loszuspielen.</p>
     <input id="profile-name-input" class="input-pill" type="text" data-i18n-placeholder="profile.namePlaceholder" placeholder="Dein Name" maxlength="20">
-    <button class="btn block" style="max-width:320px" id="btn-create-profile" data-i18n="profile.start">Los geht's</button>
+
+    <div class="profile-settings-label" data-i18n="panel.lang.title" style="margin-top:18px;">Sprache</div>
+    <div class="profile-settings-lang-options" style="max-width:320px; align-items:flex-start;">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="radio" name="onboarding-lang" value="de" id="onboarding-lang-de" checked> <span data-i18n="panel.lang.german">Deutsch</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; opacity:.5;">
+        <input type="radio" name="onboarding-lang" value="en" id="onboarding-lang-en" disabled> <span data-i18n="panel.lang.english">English</span> <span class="badge-soon" data-i18n="home.badgeSoon">bald</span>
+      </label>
+    </div>
+
+    <button class="btn block" style="max-width:320px; margin-top:14px;" id="btn-create-profile" data-i18n="profile.start">Los geht's</button>
   </section>
 
   <!-- ===================== SCREEN: STARTBILDSCHIRM / SAMMLUNG ===================== -->
@@ -25,6 +36,7 @@
     <div class="topbar">
       <div class="greeting"></div>
       <div style="display:flex; gap:8px;">
+        <button class="icon-btn" id="btn-profile-settings" data-i18n-title="profile.settingsIcon" title="Profil">👤</button>
         <button class="icon-btn" id="btn-lang-panel" data-i18n-title="home.langPanelIcon" title="Sprache">🌐</button>
         <button class="icon-btn" id="btn-dev-panel" data-i18n-title="home.devPanelIcon" title="Eigenschaften">⚙️</button>
       </div>
@@ -46,6 +58,38 @@
     <div class="view-toggle" id="view-toggle">
       <button id="btn-view-list" data-i18n-title="home.listView" title="Listenansicht">☰</button>
       <button id="btn-view-grid" data-i18n-title="home.gridView" title="Rasteransicht">▦</button>
+    </div>
+  </section>
+
+  <!--
+    Profil-Einstellungen (Backlog Punkt 8, Vorbereitung/erste Umsetzung):
+    Name UND Sprache an einer Stelle bearbeitbar, Sprachfeld bewusst
+    direkt unterhalb des Namensfelds. Speichern schreibt Namen + Sprache;
+    "English" bleibt wie im Sprachpanel bewusst deaktiviert (Phase-1-
+    Grenze, siehe README/i18n-Abschnitt) — hier nur zur Vollständigkeit
+    des Formulars mit aufgeführt, nicht wählbar.
+  -->
+  <section id="screen-profile-settings" class="hidden">
+    <div class="game-header">
+      <button class="icon-btn" id="btn-profile-settings-back">←</button>
+      <h2 data-i18n="profile.settingsTitle">Profil</h2>
+      <span class="level-chip"></span>
+    </div>
+    <div class="profile-settings-form">
+      <label class="profile-settings-label" for="profile-settings-name" data-i18n="profile.nameFieldLabel">Name</label>
+      <input id="profile-settings-name" class="input-pill" type="text" data-i18n-placeholder="profile.namePlaceholder" placeholder="Dein Name" maxlength="20">
+
+      <div class="profile-settings-label" data-i18n="panel.lang.title">Sprache</div>
+      <div class="profile-settings-lang-options">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="radio" name="profile-settings-lang" value="de" id="profile-settings-lang-de" checked> <span data-i18n="panel.lang.german">Deutsch</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; opacity:.5;">
+          <input type="radio" name="profile-settings-lang" value="en" id="profile-settings-lang-en" disabled> <span data-i18n="panel.lang.english">English</span> <span class="badge-soon" data-i18n="home.badgeSoon">bald</span>
+        </label>
+      </div>
+
+      <button class="btn block" id="btn-profile-settings-save" data-i18n="profile.save">Speichern</button>
     </div>
   </section>
 
@@ -118,7 +162,36 @@
     </div>
   </section>
 
-  <!-- Erfolgsmeldung -->
+  <!--
+    Testfläche für Backlog Punkt 7 (Fokus/Stil/Eingabe-Regler nebeneinander
+    prüfen), erreichbar über die "Memory"-Platzhalterkachel (noch kein
+    echtes Spiel). KEIN echtes Spielmodul, kein Generator, keine Rätsel-
+    logik — rein zu Testzwecken, bis eine finale Design-/Icon-Runde
+    stattfindet. Kann jederzeit wieder entfernt werden.
+  -->
+  <section id="screen-test-surface" class="hidden">
+    <div class="game-header">
+      <button class="icon-btn" id="btn-test-surface-back">←</button>
+      <h2>🧠 Testfläche</h2>
+      <span class="level-chip"></span>
+    </div>
+    <p class="test-surface-note">Kein echtes Spiel — nur zum Prüfen der Regler-Reihe auf schmalen Bildschirmen (Backlog Punkt 7).</p>
+    <div class="cage-style-row" data-role="toggle-strip">
+      <div class="toggle-group" title="Fokus: Reihe &amp; Spalte beim Eintragen grau hervorheben">
+        <span class="toggle-name">Fokus</span>
+        <label class="switch"><input type="checkbox" id="test-toggle-focus" aria-label="Fokus"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-group">
+        <span class="toggle-name">Stil</span>
+        <label class="switch"><input type="checkbox" id="test-toggle-style" aria-label="Stil"><span class="slider"></span></label>
+      </div>
+      <div class="toggle-group" title="Eingabe: An = Zifferblock-Popup, Aus = feste Zahlenauswahl unten">
+        <span class="toggle-name">Eingabe</span>
+        <label class="switch"><input type="checkbox" id="test-toggle-input" checked aria-label="Eingabe"><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="test-surface-grid" id="test-surface-grid"></div>
+  </section>
   <div class="success-overlay hidden" id="success-overlay">
     <div class="success-card">
       <div class="emoji">🎉</div>

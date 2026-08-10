@@ -141,11 +141,12 @@ function markup(){
     </div>
     <div class="hint-row">
       <button class="hint-btn" data-action="hint">💡 <span data-role="hint-count">3</span> ${t('common.hintsSuffix')}</button>
+      <div class="timer-chip">⏱ <span data-role="timer">000</span></div>
+      <button class="reveal-btn" data-action="reveal" title="${t('common.reveal')}">${t('common.revealLabel')}</button>
     </div>
     <div class="mine-hud">
       <div class="mine-hud-pill">💣 <span data-role="remaining">10</span></div>
       <button class="icon-btn" data-action="flag-mode" title="${t('game.minesweeper.flagModeTitle')}">🚩</button>
-      <div class="mine-hud-pill">⏱ <span data-role="timer">000</span></div>
     </div>
     <div class="mine-status hidden" data-role="status"></div>
     <div class="mine-board-wrap">
@@ -172,6 +173,7 @@ function bindEvents(){
   });
   listen(root.querySelector('[data-action="new"]'), 'click', () => { if(game) start(currentLevelFromGame()); });
   listen(root.querySelector('[data-action="hint"]'), 'click', useHint);
+  listen(root.querySelector('[data-action="reveal"]'), 'click', revealSolution);
   listen(root.querySelector('[data-action="flag-mode"]'), 'click', () => {
     if(!game) return;
     game.flagMode = !game.flagMode;
@@ -225,6 +227,8 @@ function applyGameToUi(){
   root.querySelector('[data-role="level"]').textContent = game.labelKey ? t(game.labelKey) : game.label;
   root.querySelector('[data-role="timer"]').textContent = formatTime(game.elapsedSeconds);
   root.querySelector('[data-action="flag-mode"]').classList.toggle('active', game.flagMode);
+  const reveal = root.querySelector('[data-action="reveal"]');
+  reveal.title = t('common.reveal'); reveal.disabled = game.gameOver || !game.firstClickDone; reveal.classList.remove('used');
   const statusEl = root.querySelector('[data-role="status"]');
   statusEl.classList.add('hidden'); statusEl.classList.remove('won', 'lost');
   refreshHintButton();
@@ -271,6 +275,23 @@ function endGame(won, hitR, hitC){
   }
 }
 
+// Zeigt alle Minenpositionen als Spoiler (analog zur "Lösung anzeigen"-
+// Funktion der übrigen Module) — zählt bewusst NICHT als gewonnen/verloren
+// und beendet die Runde nicht: das Feld bleibt technisch weiter aufdeckbar,
+// falls jemand trotzdem zu Ende spielen möchte. game.counted wird gesetzt,
+// damit ein danach doch noch erreichtes reguläres Gewinnen nicht zusätzlich
+// in die Statistik einfließt (gleiches Prinzip wie bei den anderen sechs
+// Modulen).
+function revealSolution(){
+  if(!game || game.gameOver || !game.firstClickDone) return;
+  for(let r = 0; r < game.rows; r++) for(let c = 0; c < game.cols; c++) if(game.grid[r][c].isMine) game.grid[r][c].revealed = true;
+  markInteracted();
+  game.counted = true;
+  stopTimer(); clearSave(); renderBoard();
+  const reveal = root.querySelector('[data-action="reveal"]');
+  reveal.title = t('common.revealed'); reveal.disabled = true; reveal.classList.add('used');
+}
+
 function handleCellClick(r, c){
   if(!game || game.gameOver) return;
   const cell = game.grid[r][c];
@@ -281,6 +302,8 @@ function handleCellClick(r, c){
     game.firstClickDone = true;
     game.actualMines = placeMines(game.grid, game.rows, game.cols, game.mineCount, r, c);
     startTimer();
+    const revealBtn = root.querySelector('[data-action="reveal"]');
+    if(revealBtn) revealBtn.disabled = false;
   }
   revealCell(game.grid, game.rows, game.cols, r, c);
   if(cell.isMine) endGame(false, r, c);
@@ -375,6 +398,8 @@ function useHint(){
     game.firstClickDone = true;
     game.actualMines = placeMines(game.grid, game.rows, game.cols, game.mineCount, r, c);
     startTimer();
+    const revealBtn = root.querySelector('[data-action="reveal"]');
+    if(revealBtn) revealBtn.disabled = false;
   }
   revealCell(game.grid, game.rows, game.cols, r, c);
   if(!context.hints.consume('minesweeper')) return;
@@ -406,6 +431,7 @@ function renderCustomPanel(container, actions){
     const rows = Math.min(24, Math.max(5, rowsInput || 9));
     const maxMines = Math.max(1, cols * rows - 9); // mindestens 9 sichere Felder für einen fairen ersten Klick
     const mines = Math.min(maxMines, Math.max(1, minesInput || 10));
+    clearSave(); // Backlog Punkt 10: Stufenwahl (auch "Benutzerdefiniert") verwirft einen evtl. pausierten Stand ohne Rückfrage
     actions.start({ id:'custom', cols, rows, mines, label:t('game.minesweeper.difficulties.custom.label'), labelKey:'game.minesweeper.difficulties.custom.label' });
   });
 }
@@ -413,24 +439,24 @@ function renderCustomPanel(container, actions){
 export function renderLevelsList(container, actions){
   container.innerHTML = '';
   const saved = readSave();
+  // Backlog Punkt 10: siehe die anderen sechs Module — Fortsetzen und
+  // alle Schwierigkeitsgrade stehen gemeinsam untereinander, kein
+  // Verwerfen-Dialog mehr.
   if(saved){
-    const controls = document.createElement('div');
-    controls.className = 'grid-actions';
-    controls.innerHTML = '<button class="btn block" data-action="continue">' + t('common.continueGame') + '</button><button class="btn secondary block" data-action="discard">' + t('common.newGameLabel') + '</button>';
-    controls.querySelector('[data-action="continue"]').addEventListener('click', () => actions.continue(saved));
-    controls.querySelector('[data-action="discard"]').addEventListener('click', () => {
-      if(confirm(t('game.minesweeper.discardConfirm'))){ clearSave(); renderLevelsList(container, actions); }
-    });
-    container.appendChild(controls);
-    return;
+    const continueBtn = document.createElement('button');
+    continueBtn.className = 'btn block';
+    continueBtn.textContent = t('common.continueGame');
+    continueBtn.addEventListener('click', () => actions.continue(saved));
+    container.appendChild(continueBtn);
   }
   DIFFICULTIES.forEach(d => {
     const button = document.createElement('button');
     button.className = 'level-btn';
     button.innerHTML = `<span style="font-size:20px; width:20px; text-align:center;">${d.emoji}</span><div class="label"><b>${t(d.labelKey)}</b><small>${t(d.descKey)}</small></div><div class="arrow">›</div>`;
     button.addEventListener('click', () => {
-      if(d.id === 'custom') renderCustomPanel(container, actions);
-      else actions.start({ id:d.id, cols:d.cols, rows:d.rows, mines:d.mines, label:d.label, labelKey:d.labelKey });
+      if(d.id === 'custom') { renderCustomPanel(container, actions); return; }
+      if(saved) clearSave();
+      actions.start({ id:d.id, cols:d.cols, rows:d.rows, mines:d.mines, label:d.label, labelKey:d.labelKey });
     });
     container.appendChild(button);
   });

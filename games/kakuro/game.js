@@ -144,7 +144,7 @@ function markup(){
     <div class="hint-row">
       <button class="hint-btn" data-action="hint">💡 <span data-role="hint-count">3</span> ${t('common.hintsSuffix')}</button>
       <div class="timer-chip">⏱ <span data-role="timer">00:00</span></div>
-      <button class="reveal-btn" data-action="reveal" title="${t('common.reveal')}" aria-label="${t('common.reveal')}">🔍</button>
+      <button class="reveal-btn" data-action="reveal" title="${t('common.reveal')}">${t('common.revealLabel')}</button>
     </div>
     <div class="cage-style-row" data-role="toggle-strip">
       <div class="toggle-group" title="${t('common.inputModeToggleTitle')}">
@@ -440,7 +440,7 @@ function applyGameToUi(){
   root.querySelector('[data-role="level"]').textContent = context.starsFor(game.level.id);
   root.querySelector('[data-role="timer"]').textContent = formatTime(game.elapsedSeconds);
   const reveal = root.querySelector('[data-action="reveal"]');
-  reveal.title = t('common.reveal'); reveal.setAttribute('aria-label', t('common.reveal')); reveal.disabled = false; reveal.classList.remove('used');
+  reveal.title = t('common.reveal'); reveal.disabled = false; reveal.classList.remove('used');
   root.querySelector('[data-action="input-mode"]').checked = game.inputMode === 'popup';
   root.querySelector('[data-role="inline-input"]').classList.toggle('hidden', game.inputMode === 'popup');
   refreshHintButton();
@@ -592,29 +592,33 @@ function revealSolution(){
   game.counted = true;
   stopTimer(); clearSave(); renderBoard(); updateCheckButton();
   const reveal = root.querySelector('[data-action="reveal"]');
-  reveal.title = t('common.revealed'); reveal.setAttribute('aria-label', t('common.revealed')); reveal.disabled = true; reveal.classList.add('used');
+  reveal.title = t('common.revealed'); reveal.disabled = true; reveal.classList.add('used');
 }
 
 export function renderLevelsList(container, actions){
   container.innerHTML = '';
   const saved = readSave();
+  // Backlog Punkt 10: Fortsetzen und alle Stufen stehen gemeinsam
+  // untereinander, kein Verwerfen-Dialog mehr — das direkte Antippen
+  // einer Stufe ist die Aktion (verwirft einen evtl. pausierten Stand
+  // implizit, ohne Rückfrage; "Fortsetzen" bleibt der einzige Weg,
+  // den pausierten Stand tatsächlich weiterzuspielen).
   if(saved){
-    const controls = document.createElement('div');
-    controls.className = 'grid-actions';
-    controls.innerHTML = '<button class="btn block" data-action="continue">' + t('common.continueGame') + '</button><button class="btn secondary block" data-action="discard">' + t('common.newGameLabel') + '</button>';
-    controls.querySelector('[data-action="continue"]').addEventListener('click', () => actions.continue(saved));
-    controls.querySelector('[data-action="discard"]').addEventListener('click', () => {
-      if(confirm(t('common.discardConfirmNamed', { game: t('games.kakuro.title') }))){ clearSave(); renderLevelsList(container, actions); }
-    });
-    container.appendChild(controls);
-    return;
+    const continueBtn = document.createElement('button');
+    continueBtn.className = 'btn block';
+    continueBtn.textContent = t('common.continueGame');
+    continueBtn.addEventListener('click', () => actions.continue(saved));
+    container.appendChild(continueBtn);
   }
   LEVELS.forEach(level => {
     const button = document.createElement('button');
     button.className = 'level-btn';
     const dots = Array.from({length:5}, (_, index) => `<span class="${index < level.id ? 'on' : ''}"></span>`).join('');
     button.innerHTML = `<div class="dots">${dots}</div><div class="label"><b>${t(level.labelKey)}</b><small>${t(level.descKey)}</small></div><div class="arrow">›</div>`;
-    button.addEventListener('click', () => actions.start(level));
+    button.addEventListener('click', () => {
+      if(saved) clearSave();
+      actions.start(level);
+    });
     container.appendChild(button);
   });
 }
