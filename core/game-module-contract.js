@@ -55,6 +55,10 @@
  *     preferences: { get(key, fallback): any, set(key, value): void },
  *     stats: { bump(gameId, key): void },
  *     hints: { remaining(gameId): number, consume(gameId): boolean },
+ *     attempts: { begin(): {attemptId, createdAt}, finish(record): void },
+ *       // Backlog Punkt 17 — zentraler Spielverlaufs-/Attempt-Dienst
+ *       // (core/attempts.js), siehe dort für den vollständigen
+ *       // Aufrufer-Vertrag. Ergänzt stats.bump(), ersetzt es nicht.
  *     showSuccess(text): void,
  *     loading: { show(text): void, hide(): void },
  *       // Gemeinsame, spielunabhängige Ladeanzeige — bewusst OHNE
@@ -77,10 +81,11 @@ export const REQUIRED_FUNCTIONS = Object.freeze([
 ]);
 
 export const CONTEXT_SHAPE = Object.freeze({
-  top: ['starsFor', 'preferences', 'stats', 'hints', 'showSuccess', 'loading', 'goToLevels'],
+  top: ['starsFor', 'preferences', 'stats', 'hints', 'attempts', 'showSuccess', 'loading', 'goToLevels'],
   preferences: ['get', 'set'],
   stats: ['bump'],
   hints: ['remaining', 'consume'],
+  attempts: ['begin', 'finish'],
   loading: ['show', 'hide'],
 });
 

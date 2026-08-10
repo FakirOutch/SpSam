@@ -113,6 +113,10 @@ function writeSave(){
     puzzle:game.puzzle, solution:game.solution, values:game.values,
     hasInteracted:game.hasInteracted,
     elapsedSeconds:currentElapsed(), savedAt:Date.now(), counted:game.counted,
+    // Backlog Punkt 17 — additive Felder, ältere Speicherstände ohne sie
+    // bleiben gültig (siehe restore()-Fallback).
+    attemptId:game.attemptId, attemptCreatedAt:game.attemptCreatedAt,
+    attemptFirstActionAt:game.attemptFirstActionAt, attemptHintsUsed:game.attemptHintsUsed,
   }));
 }
 
@@ -127,6 +131,7 @@ function clearSave(){ sharedClearSave(SAVE_KEY); }
 function markInteracted(){
   if(game.hasInteracted) return;
   game.hasInteracted = true;
+  if(!game.attemptFirstActionAt) game.attemptFirstActionAt = Date.now(); // Backlog Punkt 17
   context.stats.bump('sudoku', 'played');
   writeSave();
 }
@@ -262,13 +267,30 @@ function bindEvents(){
 export async function start(level){
   if(!root) throw new Error('Sudoku muss vor start() gemountet werden.');
   stopTimer();
+  // Backlog Punkt 17: "Neu mischen" ersetzt ein evtl. laufendes Rätsel
+  // durch ein neues — der alte Versuch wird genau einmal als "abandoned"
+  // abgeschlossen, aber NUR, wenn er überhaupt eine reguläre Aktion hatte
+  // (sonst zählt er laut Vorgabe gar nicht erst). Der Fall "Stufenwechsel
+  // aus der Levelliste" wird separat in renderLevelsList() behandelt, da
+  // dort game bereits null ist (frischer mount()).
+  if(game && game.attemptFirstActionAt && !game.counted){
+    context.attempts.finish({
+      attemptId: game.attemptId, difficulty: game.level.id,
+      generatorRef: generatorVersion, schemaRef: saveVersion,
+      createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+      status: 'abandoned', hintsUsed: game.attemptHintsUsed || 0,
+    });
+  }
   const generated = generatePuzzle(level.clues);
+  const attempt = context.attempts.begin();
   game = {
     level, puzzle:generated.puzzle, solution:generated.solution,
     values:generated.puzzle.map(row => row.slice()), activeCell:null,
     counted:false, hasInteracted:false, elapsedSeconds:0, startedAt:null,
     highlightEnabled:context.preferences.get('highlight', false),
     inputMode:context.preferences.get('inputMode', 'popup'), markedValue:null,
+    attemptId:attempt.attemptId, attemptCreatedAt:attempt.createdAt,
+    attemptFirstActionAt:null, attemptHintsUsed:0,
   };
   applyGameToUi();
   writeSave();
@@ -278,12 +300,22 @@ export async function start(level){
 export async function restore(savedState = readSave()){
   if(!validateSave(savedState)) return false;
   const level = LEVELS.find(item => item.id === savedState.levelId);
+  // Backlog Punkt 17: ältere Speicherstände ohne attemptId bekommen einen
+  // best-effort nachträglich erzeugten Versuch (Rückwärtskompatibilität —
+  // kein Absturz, keine verlorene Fortsetzbarkeit, nur ohne exakt
+  // rekonstruierbare ursprüngliche Anzeigezeit).
+  const hasAttemptData = typeof savedState.attemptId === 'string';
+  const fallbackCreatedAt = Date.now() - savedState.elapsedSeconds * 1000;
   game = {
     level, puzzle:savedState.puzzle, solution:savedState.solution, values:savedState.values,
     activeCell:null, counted:savedState.counted, hasInteracted:savedState.hasInteracted,
     elapsedSeconds:savedState.elapsedSeconds + Math.max(0, Math.floor((Date.now() - savedState.savedAt) / 1000)),
     startedAt:null, highlightEnabled:context.preferences.get('highlight', false),
     inputMode:context.preferences.get('inputMode', 'popup'), markedValue:null,
+    attemptId: hasAttemptData ? savedState.attemptId : context.attempts.begin().attemptId,
+    attemptCreatedAt: hasAttemptData ? savedState.attemptCreatedAt : fallbackCreatedAt,
+    attemptFirstActionAt: hasAttemptData ? (savedState.attemptFirstActionAt || null) : (savedState.hasInteracted ? fallbackCreatedAt : null),
+    attemptHintsUsed: hasAttemptData ? (savedState.attemptHintsUsed || 0) : 0,
   };
   applyGameToUi();
   if(!game.counted) startTimer();
@@ -394,6 +426,12 @@ function checkPuzzle(){
   if(!correct || game.counted) return;
   context.stats.bump('sudoku', 'won');
   game.counted = true; stopTimer(); clearSave();
+  context.attempts.finish({ // Backlog Punkt 17
+    attemptId: game.attemptId, difficulty: game.level.id,
+    generatorRef: generatorVersion, schemaRef: saveVersion,
+    createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+    status: 'solved', hintsUsed: game.attemptHintsUsed || 0,
+  });
   context.showSuccess(t('game.sudoku.success'));
 }
 
@@ -412,6 +450,7 @@ function useHint(){
   if(!candidates.length || !context.hints.consume('sudoku')) return;
   const [row,col] = candidates[Math.floor(Math.random() * candidates.length)];
   game.values[row][col] = game.solution[row][col];
+  game.attemptHintsUsed = (game.attemptHintsUsed || 0) + 1; // Backlog Punkt 17
   markInteracted();
   renderGrid(); updateCheckButton(); refreshHintButton(); writeSave();
 }
@@ -421,6 +460,12 @@ function revealSolution(){
   markInteracted();
   game.counted = true;
   stopTimer(); clearSave(); renderGrid(); updateCheckButton();
+  context.attempts.finish({ // Backlog Punkt 17
+    attemptId: game.attemptId, difficulty: game.level.id,
+    generatorRef: generatorVersion, schemaRef: saveVersion,
+    createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+    status: 'revealed', hintsUsed: game.attemptHintsUsed || 0,
+  });
   const reveal = root.querySelector('[data-action="reveal"]');
   reveal.title = t('common.revealed'); reveal.disabled = true; reveal.classList.add('used');
 }
@@ -444,8 +489,19 @@ export function renderLevelsList(container, actions){
     const button = document.createElement('button');
     button.className = 'level-btn';
     const dots = Array.from({length:5}, (_, index) => `<span class="${index < level.id ? 'on' : ''}"></span>`).join('');
-    button.innerHTML = `<div class="dots">${dots}</div><div class="label"><b>${t(level.labelKey)}</b><small>${t(level.descKey)}</small></div><div class="arrow">›</div>`;
+    button.innerHTML = `<div class="dots">${dots}</div><div class="label"><b>${t(level.labelKey)}</b></div><div class="arrow">›</div>`;
     button.addEventListener('click', () => {
+      // Backlog Punkt 17: nur abschließen, wenn der pausierte Stand
+      // überhaupt eine reguläre Aktion hatte — ein nie angefasstes
+      // Rätsel zählt laut Vorgabe nicht als abgebrochener Versuch.
+      if(saved && saved.attemptId && saved.attemptFirstActionAt){
+        actions.abandonAttempt({
+          attemptId: saved.attemptId, difficulty: saved.levelId,
+          generatorRef: generatorVersion, schemaRef: saveVersion,
+          createdAt: saved.attemptCreatedAt, firstActionAt: saved.attemptFirstActionAt,
+          hintsUsed: saved.attemptHintsUsed || 0,
+        });
+      }
       if(saved) clearSave();
       actions.start(level);
     });

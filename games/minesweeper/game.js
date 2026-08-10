@@ -96,6 +96,8 @@ function writeSave(){
     actualMines:game.actualMines, revealedCount:game.revealedCount, flagMode:game.flagMode,
     hasInteracted:game.hasInteracted, counted:game.counted,
     elapsedSeconds:currentElapsed(), savedAt:Date.now(),
+    attemptId:game.attemptId, attemptCreatedAt:game.attemptCreatedAt,
+    attemptFirstActionAt:game.attemptFirstActionAt, attemptHintsUsed:game.attemptHintsUsed,
   }));
 }
 function clearSave(){ localStorage.removeItem(SAVE_KEY); }
@@ -107,6 +109,7 @@ function clearSave(){ localStorage.removeItem(SAVE_KEY); }
 function markInteracted(){
   if(game.hasInteracted) return;
   game.hasInteracted = true;
+  if(!game.attemptFirstActionAt) game.attemptFirstActionAt = Date.now(); // Backlog Punkt 17
   context.stats.bump('minesweeper', 'played');
   writeSave();
 }
@@ -188,7 +191,17 @@ function currentLevelFromGame(){
 export async function start(level){
   if(!root) throw new Error('Minesweeper muss vor start() gemountet werden.');
   stopTimer();
+  // Backlog Punkt 17: siehe games/sudoku/game.js für die Begründung.
+  if(game && game.attemptFirstActionAt && !game.counted){
+    context.attempts.finish({
+      attemptId: game.attemptId, difficulty: game.difficultyId,
+      generatorRef: generatorVersion, schemaRef: saveVersion,
+      createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+      status: 'abandoned', hintsUsed: game.attemptHintsUsed || 0,
+    });
+  }
   const grid = buildEmptyBoard(level.rows, level.cols);
+  const attempt = context.attempts.begin();
   game = {
     difficultyId: level.id, label: level.label, labelKey: level.labelKey, cols: level.cols, rows: level.rows, mineCount: level.mines,
     grid, firstClickDone:false, gameOver:false, won:false,
@@ -196,6 +209,8 @@ export async function start(level){
     hasInteracted:false, counted:false,
     elapsedSeconds:0, startedAt:null,
     cellSize: cellSizeFor(level.cols),
+    attemptId:attempt.attemptId, attemptCreatedAt:attempt.createdAt,
+    attemptFirstActionAt:null, attemptHintsUsed:0,
   };
   applyGameToUi();
   writeSave();
@@ -206,6 +221,8 @@ export async function start(level){
 export async function restore(savedState = readSave()){
   if(!validateSave(savedState)) return false;
   const alreadyRunning = savedState.firstClickDone && !savedState.gameOver;
+  const hasAttemptData = typeof savedState.attemptId === 'string';
+  const fallbackCreatedAt = Date.now() - savedState.elapsedSeconds * 1000;
   game = {
     difficultyId: savedState.difficultyId, label: savedState.label, labelKey: savedState.labelKey,
     cols: savedState.cols, rows: savedState.rows, mineCount: savedState.mineCount,
@@ -217,6 +234,10 @@ export async function restore(savedState = readSave()){
     startedAt: null,
     cellSize: cellSizeFor(savedState.cols),
     hitR: savedState.hitR, hitC: savedState.hitC,
+    attemptId: hasAttemptData ? savedState.attemptId : context.attempts.begin().attemptId,
+    attemptCreatedAt: hasAttemptData ? savedState.attemptCreatedAt : fallbackCreatedAt,
+    attemptFirstActionAt: hasAttemptData ? (savedState.attemptFirstActionAt || null) : (savedState.hasInteracted ? fallbackCreatedAt : null),
+    attemptHintsUsed: hasAttemptData ? (savedState.attemptHintsUsed || 0) : 0,
   };
   applyGameToUi();
   if(alreadyRunning) startTimer();
@@ -264,11 +285,28 @@ function endGame(won, hitR, hitC){
   if(won){
     if(!game.counted){ context.stats.bump('minesweeper', 'won'); game.counted = true; }
     clearSave();
+    context.attempts.finish({ // Backlog Punkt 17
+      attemptId: game.attemptId, difficulty: game.difficultyId,
+      generatorRef: generatorVersion, schemaRef: saveVersion,
+      createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+      status: 'solved', hintsUsed: game.attemptHintsUsed || 0,
+    });
     context.showSuccess(t('game.minesweeper.success'));
   } else {
     game.hitR = hitR; game.hitC = hitC;
     game.counted = true;
     clearSave();
+    // Backlog Punkt 17: das vorgegebene Statusmodell kennt nur
+    // solved/abandoned/revealed, keinen eigenen "verloren"-Status. Ein
+    // Minentreffer wird daher als 'abandoned' geführt (beendet, nicht
+    // gelöst) plus einem zusätzlichen Diagnosefeld outcome:'mine_hit',
+    // das den vorgegebenen Enum nicht erweitert — siehe core/attempts.js.
+    context.attempts.finish({
+      attemptId: game.attemptId, difficulty: game.difficultyId,
+      generatorRef: generatorVersion, schemaRef: saveVersion,
+      createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+      status: 'abandoned', hintsUsed: game.attemptHintsUsed || 0, outcome: 'mine_hit',
+    });
     statusEl.textContent = t('game.minesweeper.lost');
     statusEl.classList.remove('hidden');
     statusEl.classList.add('lost');
@@ -288,6 +326,12 @@ function revealSolution(){
   markInteracted();
   game.counted = true;
   stopTimer(); clearSave(); renderBoard();
+  context.attempts.finish({ // Backlog Punkt 17
+    attemptId: game.attemptId, difficulty: game.difficultyId,
+    generatorRef: generatorVersion, schemaRef: saveVersion,
+    createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+    status: 'revealed', hintsUsed: game.attemptHintsUsed || 0,
+  });
   const reveal = root.querySelector('[data-action="reveal"]');
   reveal.title = t('common.revealed'); reveal.disabled = true; reveal.classList.add('used');
 }
@@ -403,6 +447,7 @@ function useHint(){
   }
   revealCell(game.grid, game.rows, game.cols, r, c);
   if(!context.hints.consume('minesweeper')) return;
+  game.attemptHintsUsed = (game.attemptHintsUsed || 0) + 1; // Backlog Punkt 17
   checkWin();
   renderBoard();
   updateHud();
@@ -410,7 +455,7 @@ function useHint(){
   writeSave();
 }
 
-function renderCustomPanel(container, actions){
+function renderCustomPanel(container, actions, saved){
   const panel = document.createElement('div');
   panel.className = 'mine-custom-panel';
   panel.innerHTML = `
@@ -431,6 +476,15 @@ function renderCustomPanel(container, actions){
     const rows = Math.min(24, Math.max(5, rowsInput || 9));
     const maxMines = Math.max(1, cols * rows - 9); // mindestens 9 sichere Felder für einen fairen ersten Klick
     const mines = Math.min(maxMines, Math.max(1, minesInput || 10));
+    // Backlog Punkt 17: siehe games/sudoku/game.js für die Begründung.
+    if(saved && saved.attemptId && saved.attemptFirstActionAt){
+      actions.abandonAttempt({
+        attemptId: saved.attemptId, difficulty: saved.difficultyId,
+        generatorRef: generatorVersion, schemaRef: saveVersion,
+        createdAt: saved.attemptCreatedAt, firstActionAt: saved.attemptFirstActionAt,
+        hintsUsed: saved.attemptHintsUsed || 0,
+      });
+    }
     clearSave(); // Backlog Punkt 10: Stufenwahl (auch "Benutzerdefiniert") verwirft einen evtl. pausierten Stand ohne Rückfrage
     actions.start({ id:'custom', cols, rows, mines, label:t('game.minesweeper.difficulties.custom.label'), labelKey:'game.minesweeper.difficulties.custom.label' });
   });
@@ -454,7 +508,16 @@ export function renderLevelsList(container, actions){
     button.className = 'level-btn';
     button.innerHTML = `<span style="font-size:20px; width:20px; text-align:center;">${d.emoji}</span><div class="label"><b>${t(d.labelKey)}</b><small>${t(d.descKey)}</small></div><div class="arrow">›</div>`;
     button.addEventListener('click', () => {
-      if(d.id === 'custom') { renderCustomPanel(container, actions); return; }
+      if(d.id === 'custom') { renderCustomPanel(container, actions, saved); return; }
+      // Backlog Punkt 17: siehe games/sudoku/game.js für die Begründung.
+      if(saved && saved.attemptId && saved.attemptFirstActionAt){
+        actions.abandonAttempt({
+          attemptId: saved.attemptId, difficulty: saved.difficultyId,
+          generatorRef: generatorVersion, schemaRef: saveVersion,
+          createdAt: saved.attemptCreatedAt, firstActionAt: saved.attemptFirstActionAt,
+          hintsUsed: saved.attemptHintsUsed || 0,
+        });
+      }
       if(saved) clearSave();
       actions.start({ id:d.id, cols:d.cols, rows:d.rows, mines:d.mines, label:d.label, labelKey:d.labelKey });
     });

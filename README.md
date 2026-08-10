@@ -457,3 +457,77 @@ Layout-Regressionstest mit längeren/kürzeren englischen Texten
 beim Sprachwechsel nur Startbildschirm/Levelauswahl-Titel sofort
 aktualisiert, ein bereits geöffnetes Spielmodul nicht — unkritisch,
 da Englisch in Phase 1 ohnehin nicht über die UI erreichbar ist).
+
+## Backlog Punkt 17 — zentrale Statistik-/Spielverlaufserfassung
+
+**Architektur:**
+- `core/attempts.js` — reine, zustandslose Engine (wie `core/i18n.js`/
+  `core/save-utils.js`): `beginAttempt(gameId)` liefert `{attemptId,
+  createdAt}`, `finishAttempt(record)` schreibt genau einmal (über
+  `attemptId` dedupliziert) ins lokale Verlaufs-Log
+  (`arkimis_attempts_v1`, versioniert). 2-Stunden-Grenze zentral als
+  `MAX_TIMED_MS`-Konstante — an einer einzigen Stelle änderbar, nicht
+  in den Modulen verstreut.
+- Bewusste Architekturentscheidung: der Dienst hält **keinen** eigenen
+  "laufender Versuch"-Zustand parallel zum Spielstand. Die Lebenszyklus-
+  Metadaten eines offenen Versuchs (`attemptId`, `attemptCreatedAt`,
+  `attemptFirstActionAt`, `attemptHintsUsed`) leben additiv im
+  jeweiligen Modul-eigenen Save — es gibt nur eine Quelle der Wahrheit,
+  Statistikzustand und Spielsave können nicht auseinanderlaufen.
+- `app.js`: `context.attempts.begin()/finish()` für alle Aufrufe
+  innerhalb eines gemounteten Moduls. Für `renderLevelsList()` (läuft
+  vor `mount()`, `context` existiert dort noch nicht) gibt es
+  stattdessen `actions.abandonAttempt(record)`, direkt von `app.js`
+  bereitgestellt. Ergänzt den bestehenden groben `stats.bump()`-Zähler
+  (treibt weiterhin die gespielt/gewonnen-Zahlen auf der Startseite),
+  ersetzt ihn nicht.
+
+**Regeln (wie vorgegeben):**
+- Ein Versuch zählt erst ab der ersten regulären Aktion (alles außer
+  Fokus/Stil/Eingabe-Reglern). Ein nie angefasstes Rätsel erzeugt
+  **keinen** Log-Eintrag — `finishAttempt()` wird von den Modulen dafür
+  bewusst gar nicht erst aufgerufen.
+- Zeitmessung beginnt bei Anzeige/Start des Rätsels (`createdAt`), nicht
+  erst bei der ersten Aktion — bereits vergangene Denkzeit bleibt
+  enthalten.
+- Zurückgehen erzeugt keinen zweiten Versuch; Fortsetzen führt denselben
+  `attemptId` weiter (im Save gespeichert).
+- Wird das laufende Rätsel ersetzt (Stufenwechsel in der Liste, "Neu
+  mischen"), wird der alte Versuch genau einmal als `abandoned`
+  abgeschlossen — nur, wenn er eine reguläre Aktion hatte.
+- Lösung anzeigen → Status `revealed` (zählt in der Lösungsrate als
+  nicht gelöst).
+- Über 2h: sichtbare Uhr stoppt bereits vorher bei `2:00:00`
+  (Bestandslogik), Versuch bleibt gültig, `timingEligible:false`, nicht
+  in künftige Zeitvergleiche einbezogen.
+- Ältere Speicherstände ohne die neuen Felder bleiben ladbar
+  (`restore()`-Fallback synthetisiert einen Versuch nachträglich,
+  best-effort ohne exakt rekonstruierbare ursprüngliche Anzeigezeit).
+
+**Offene Modellierungsfrage, so gelöst:** Minesweeper kann durch
+Minentreffer verlieren — das vorgegebene Statusmodell kennt nur
+`solved/abandoned/revealed`. Ein Verlust wird als `abandoned` geführt,
+zusätzlich mit einem Diagnosefeld `outcome:'mine_hit'` (erweitert den
+vorgegebenen Enum nicht).
+
+**Getestet:**
+- `node scripts/test-attempts.mjs` — Engine isoliert: eindeutige IDs,
+  niemals doppelter Abschluss, 2h-Grenze/`timingEligible`, fehlende
+  Pflichtfelder = stiller No-op, Persistenz
+- Playwright, alle sieben Module: Rätsel öffnen ohne Aktion → kein
+  Versuch; nur Regler ändern → kein Versuch; erste Aktion → `attemptId`
+  gesetzt; Fortsetzen → derselbe `attemptId`; andere Stufe → alter
+  Versuch genau einmal `abandoned`; Lösen → `solved`; Lösung anzeigen →
+  `revealed`; simulierte Zeit über 2h → `timingEligible:false`, trotzdem
+  gelöst gezählt; mehrfaches Zurück/Fortsetzen → keine Doppelzählung.
+  Hashi (Brücke ziehen) und Minesweeper (erster Klick, Minentreffer)
+  einzeln mit ihren jeweils eigenen Interaktionsmustern abgedeckt.
+- Bestehende Regressionstests (i18n, Toolbar/Punkt 3, Fortsetzen+Stufen/
+  Punkt 10) erneut grün — keine Wechselwirkung mit der neuen Erfassung.
+- `check-modules.mjs`, `check-i18n-keys.mjs`, beide bestehenden
+  Unit-Test-Skripte weiterhin grün.
+
+**Bewusst noch nicht umgesetzt (laut Vorgabe):** Punkt 18 (sichtbare
+Statistikoberfläche) und Punkt 19 (10/50/100-Vergleiche) — die Erfassung
+läuft bereits vollständig und liefert ab sofort verwertbare Rohdaten,
+nur eine Anzeige dafür existiert noch nicht.

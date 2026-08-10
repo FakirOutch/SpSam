@@ -104,6 +104,8 @@ function writeSave(){
     userBridges:Array.from(game.userBridges.entries()),
     hasInteracted:game.hasInteracted, counted:game.counted,
     elapsedSeconds:currentElapsed(), savedAt:Date.now(),
+    attemptId:game.attemptId, attemptCreatedAt:game.attemptCreatedAt,
+    attemptFirstActionAt:game.attemptFirstActionAt, attemptHintsUsed:game.attemptHintsUsed,
   }));
 }
 function clearSave(){ localStorage.removeItem(SAVE_KEY); }
@@ -113,6 +115,7 @@ function clearSave(){ localStorage.removeItem(SAVE_KEY); }
 function markInteracted(){
   if(game.hasInteracted) return;
   game.hasInteracted = true;
+  if(!game.attemptFirstActionAt) game.attemptFirstActionAt = Date.now(); // Backlog Punkt 17
   context.stats.bump('hashi', 'played');
   writeSave();
 }
@@ -184,11 +187,23 @@ function bindEvents(){
 export async function start(level){
   if(!root) throw new Error('Hashi muss vor start() gemountet werden.');
   stopTimer();
+  // Backlog Punkt 17: siehe games/sudoku/game.js für die Begründung.
+  if(game && game.attemptFirstActionAt && !game.counted){
+    context.attempts.finish({
+      attemptId: game.attemptId, difficulty: game.level.id,
+      generatorRef: generatorVersion, schemaRef: saveVersion,
+      createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+      status: 'abandoned', hintsUsed: game.attemptHintsUsed || 0,
+    });
+  }
   const puzzle = generateHashiPuzzleWithRetry(level);
+  const attempt = context.attempts.begin();
   game = {
     level, gridSize:puzzle.size, islands:puzzle.islands, solutionBridges:puzzle.solutionBridges,
     userBridges:new Map(), hasInteracted:false, counted:false,
     elapsedSeconds:0, startedAt:null,
+    attemptId:attempt.attemptId, attemptCreatedAt:attempt.createdAt,
+    attemptFirstActionAt:null, attemptHintsUsed:0,
   };
   applyGameToUi();
   writeSave();
@@ -198,12 +213,18 @@ export async function start(level){
 export async function restore(savedState = readSave()){
   if(!validateSave(savedState)) return false;
   const level = LEVELS.find(item => item.id === savedState.levelId);
+  const hasAttemptData = typeof savedState.attemptId === 'string';
+  const fallbackCreatedAt = Date.now() - savedState.elapsedSeconds * 1000;
   game = {
     level, gridSize:savedState.size, islands:savedState.islands, solutionBridges:savedState.solutionBridges,
     userBridges:new Map(savedState.userBridges),
     hasInteracted:savedState.hasInteracted, counted:savedState.counted,
     elapsedSeconds:savedState.elapsedSeconds + Math.max(0, Math.floor((Date.now() - savedState.savedAt) / 1000)),
     startedAt:null,
+    attemptId: hasAttemptData ? savedState.attemptId : context.attempts.begin().attemptId,
+    attemptCreatedAt: hasAttemptData ? savedState.attemptCreatedAt : fallbackCreatedAt,
+    attemptFirstActionAt: hasAttemptData ? (savedState.attemptFirstActionAt || null) : (savedState.hasInteracted ? fallbackCreatedAt : null),
+    attemptHintsUsed: hasAttemptData ? (savedState.attemptHintsUsed || 0) : 0,
   };
   applyGameToUi();
   if(!game.counted) startTimer();
@@ -447,6 +468,12 @@ function checkPuzzle(){
   if(!allCorrect || game.counted) return;
   context.stats.bump('hashi', 'won');
   game.counted = true; stopTimer(); clearSave();
+  context.attempts.finish({ // Backlog Punkt 17
+    attemptId: game.attemptId, difficulty: game.level.id,
+    generatorRef: generatorVersion, schemaRef: saveVersion,
+    createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+    status: 'solved', hintsUsed: game.attemptHintsUsed || 0,
+  });
   context.showSuccess(t('game.hashi.success'));
 }
 
@@ -462,6 +489,7 @@ function useHint(){
   if(!mismatched.length || !context.hints.consume('hashi')) return;
   const pick = mismatched[Math.floor(Math.random() * mismatched.length)];
   game.userBridges.set(pairKey(pick.a, pick.b), pick.count);
+  game.attemptHintsUsed = (game.attemptHintsUsed || 0) + 1; // Backlog Punkt 17
   markInteracted();
   renderBoard(); updateCheckButton(); refreshHintButton(); writeSave();
 }
@@ -472,6 +500,12 @@ function revealSolution(){
   markInteracted();
   game.counted = true;
   stopTimer(); clearSave(); renderBoard(); updateCheckButton();
+  context.attempts.finish({ // Backlog Punkt 17
+    attemptId: game.attemptId, difficulty: game.level.id,
+    generatorRef: generatorVersion, schemaRef: saveVersion,
+    createdAt: game.attemptCreatedAt, firstActionAt: game.attemptFirstActionAt,
+    status: 'revealed', hintsUsed: game.attemptHintsUsed || 0,
+  });
   const reveal = root.querySelector('[data-action="reveal"]');
   reveal.title = t('common.revealed'); reveal.disabled = true; reveal.classList.add('used');
 }
@@ -495,8 +529,17 @@ export function renderLevelsList(container, actions){
     const button = document.createElement('button');
     button.className = 'level-btn';
     const dots = Array.from({length:5}, (_, index) => `<span class="${index < level.id ? 'on' : ''}"></span>`).join('');
-    button.innerHTML = `<div class="dots">${dots}</div><div class="label"><b>${t(level.labelKey)}</b><small>${t(level.descKey)}</small></div><div class="arrow">›</div>`;
+    button.innerHTML = `<div class="dots">${dots}</div><div class="label"><b>${t(level.labelKey)}</b></div><div class="arrow">›</div>`;
     button.addEventListener('click', () => {
+      // Backlog Punkt 17: siehe games/sudoku/game.js für die Begründung.
+      if(saved && saved.attemptId && saved.attemptFirstActionAt){
+        actions.abandonAttempt({
+          attemptId: saved.attemptId, difficulty: saved.levelId,
+          generatorRef: generatorVersion, schemaRef: saveVersion,
+          createdAt: saved.attemptCreatedAt, firstActionAt: saved.attemptFirstActionAt,
+          hintsUsed: saved.attemptHintsUsed || 0,
+        });
+      }
       if(saved) clearSave();
       actions.start(level);
     });

@@ -82,6 +82,19 @@ async function bootI18n(){
 }
 
 /* ============================================================
+   ATTEMPTS — Bootstrap, siehe core/attempts.js (Backlog Punkt 17).
+   Reine Engine ohne Init-Zustand, daher genügt ein einfacher
+   dynamischer Import, kein await auf eine Setup-Funktion nötig.
+   ============================================================ */
+let beginAttempt = null;
+let finishAttempt = null;
+async function bootAttempts(){
+  const attemptsModule = await import('./core/attempts.js');
+  beginAttempt = attemptsModule.beginAttempt;
+  finishAttempt = attemptsModule.finishAttempt;
+}
+
+/* ============================================================
    SPIELE-KATALOG — hier künftig weitere Spiele eintragen.
    Jede Kachel auf dem Startbildschirm entsteht automatisch
    aus dieser Liste. "addedOrder" bestimmt, welches verfügbare
@@ -148,6 +161,18 @@ function createModuleContext(gameId, goToLevels){
       remaining: getHintsRemaining,
       consume: consumeHint,
     },
+    // Backlog Punkt 17 — zentraler Attempt-/Spielverlaufsdienst
+    // (core/attempts.js). Reichert automatisch die aktive profileId an,
+    // damit kein Modul selbst etwas über Profile wissen muss (Vorbereitung
+    // auf bis zu vier Profile, siehe Backlog Punkt 3/26 — noch nicht
+    // umgesetzt, aber das Datenmodell ist schon dafür da). Ergänzt den
+    // bestehenden groben stats.bump()-Zähler, ersetzt ihn NICHT — der
+    // treibt weiterhin die sichtbaren gespielt/gewonnen-Zahlen auf der
+    // Startseite.
+    attempts: {
+      begin: () => beginAttempt(gameId),
+      finish: (record) => finishAttempt({ ...record, gameId, profileId: state.profileName || null }),
+    },
     showSuccess: text => {
       document.getElementById('success-text').textContent = text;
       document.getElementById('success-overlay').classList.remove('hidden');
@@ -198,6 +223,13 @@ async function showModuleLevels(gameId){
         showScreen('moduleGame');
         if(!await module.restore(savedState)) await showModuleLevels(gameId);
       },
+      // Backlog Punkt 17: renderLevelsList() läuft bewusst VOR mount(),
+      // context (und damit context.attempts) existiert dort also noch
+      // nicht — deshalb hier als eigener, direkter Weg für genau den
+      // einen Fall "laufenden Versuch beim direkten Stufenwechsel als
+      // abgebrochen abschließen", mit derselben automatischen
+      // profileId-Anreicherung wie context.attempts.finish().
+      abandonAttempt: record => finishAttempt({ ...record, gameId, status: 'abandoned', profileId: state.profileName || null }),
     });
     showScreen('levels');
   }catch(error){
@@ -722,6 +754,7 @@ document.getElementById('btn-success-levels').addEventListener('click', () => {
    ============================================================ */
 (async () => {
   await bootI18n();
+  await bootAttempts();
   if(state.profileName){
     enterHome();
   } else {
